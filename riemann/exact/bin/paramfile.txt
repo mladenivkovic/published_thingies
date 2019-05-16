@@ -1,0 +1,7 @@
+// parameter file for riemann program
+
+verbose = 1
+nx = 1000
+gamma = 1.4
+nsteps = 8
+tmax = 0.1

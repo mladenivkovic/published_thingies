@@ -2,3 +2,7 @@
 *.exe
 *.mod
 **/**/__pycache__
+riemann
+riemann-full
+riemann-vacuum
+godunov

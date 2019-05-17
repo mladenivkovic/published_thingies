@@ -7,9 +7,15 @@
 import numpy as np
 
 
+# Names of all available kernels
 kernels = ['cubic_spline', 'quintic_spline', 
         'gaussian', 'gaussian_compact', 'supergaussian',
         'wendland_C2', 'wendland_C4', 'wendland_C6']
+
+# factors of all kernels for which fact*h = 0
+kernelfacts = [2, 3,
+        1000, 3, 3, 
+        2, 2, 2]
 
 
 
@@ -31,6 +37,7 @@ def W(q, h, kernel='cubic_spline'):
         wendland_C4, 
         wendland_C6
     """ 
+    #  https://pysph.readthedocs.io/en/latest/reference/kernels.html#liu2010
 
     if kernel == 'cubic_spline': 
 

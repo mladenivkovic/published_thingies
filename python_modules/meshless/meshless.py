@@ -9,9 +9,9 @@
 #===========================================
 
 
-from meshlessio import read_file, get_sample_size
-from kernels import W, kernels
-from particles import find_index, find_neighbours, V, find_central_particle, find_added_particle
+from meshlessio import *
+from kernels import *
+from particles import *
 
 
 import numpy as np
@@ -163,89 +163,118 @@ def x_ij(pind, x, y, h, nbors=None, which=None):
 
 
 
-#==================================================
-def A_ij_Ivanova(x, y, h, rho, m, nbors):
-#==================================================
+#===========================================================================================
+def Integrand_Aij_Ivanova(iind, jind, xx, yy, hh, x, y, h, m, rho, kernel='cubic_spline', fact=2):
+#===========================================================================================
     """
-    Compute the effective area A_ij(x)
+    Compute the effective area integrand for the particles iind jind at
+    the positions xx, yy
 
-    CURRENTLY COMPLETELY WRONG LOL
+    (Note that this should be integrated to get the proper effective surface)
+
+    A_ij    = psi_j(x) \nabla psi_i(x) - psi_i (x) \nabla psi_j(x)
+            = sum_k [ psi_j(x_k) psi_i(x) - psi_i(x_k) psi_j(x) ] * psi_tilde_k(x)
+            = psi_i(x) * sum_k psi_j(x_k) * psi_tilde_k(x) - psi_j(x) * sum_k psi_i(x_k) * psi_tilde_k(x)
+    
+    The last line is what is actually computed here, with the expression for the gradient
+    inserted.
     """
 
-    xj = x[nbors]
-    yj = y[nbors]
-    hj = h[nbors]
+    nbors = find_neighbours_arbitrary_x(xx, yy, x, y, h, fact)
 
-    #-------------------------------------------------------
-    # Part 1: For particle at x_i (Our chosen particle)
-    #-------------------------------------------------------
-
-    # compute psi_j(x_i)
-    psi_j = compute_psi(x[pind], y[pind], xj, yj, h[pind], kernel)
-
-    # normalize psi_j. Don't forget to add the self-contributing value!
-    omega_xi =  (np.sum(psi_j) + psi(x[pind], y[pind], x[pind], y[pind], h[pind]))
-    psi_j /= omega_xi
-    psi_j = np.float64(psi_j)
-
-    # compute B_i
-    B_i = get_matrix(x[pind], y[pind], xj, yj, psi_j)
-
-    # get index of central particle in nbors list
-    cind_n = nbors.index(cind)
-
-    # compute grad_psi_j(x_i)
-    grad_psi_j = np.empty((1, 2), dtype=np.float)
-    dx = np.array([x[cind]-x[pind], y[cind]-y[pind]])
-    grad_psi_j = np.dot(B_i, dx) * psi_j[cind_n]
+    xk = x[nbors]
+    yk = y[nbors]
+    hk = h[nbors]
 
 
 
-    #---------------------------------------------------------------------------
-    # Part 2: values of psi/grad_psi of particle i at neighbour positions x_j
-    #---------------------------------------------------------------------------
+    #----------------------
+    # compute psi_i/j(x)
+    #----------------------
 
-    psi_i = 0.0                                    # psi_i(xj)
-    grad_psi_i = np.empty((1, 2), dtype=np.float)  # grad_psi_i(x_j)
+    # compute all psi(x)
+    psi_x = compute_psi(xx, yy, xk, yk, hh, kernel)
 
-    # first compute all psi(xj) from central's neighbours to get weight omega
-    nneigh = find_neighbours(cind, x, y, h)
-    xk = x[nneigh]
-    yk = y[nneigh]
-    for j, nn in enumerate(nneigh):
-        psi_k = compute_psi(x[cind], y[cind], xk, yk, h[cind])
-        if nn == pind: # store psi_i, which is the psi for the particle whe chose at position xj; psi_i(xj)
-            psi_i = psi_k[j]
-
-    omega_xj = (np.sum(psi_k) + psi(x[cind], y[cind], x[cind], y[cind], h[cind]))
-
-    psi_i/= omega_xj
-    psi_i = np.float64(psi_i)
-
-    # now compute B_j^{\alpha \beta}
-    B_j = get_matrix(x[cind], y[cind], xk, yk, h[cind])
-
-    # get gradient
-    dx = np.array([x[pind]-x[cind], y[pind]-y[cind]])
-    grad_psi_i = np.dot(B_j, dx) * psi_i
+    # normalize psis
+    omega = np.sum(psi_x)
+    psi_x /= omega
+    psi_x = np.float64(psi_x)
 
 
 
-    #-------------------------------
-    # Part 3: Compute A_ij, x_ij
-    #-------------------------------
+    # find where psi_i and psi_j are in that array
+    inb = nbors.index(iind)
+    jnb = nbors.index(jind)
 
-    V = m/rho
+    psi_i_of_x = psi_x[inb] # psi_i(xx, yy)
+    psi_j_of_x = psi_x[jnb] # psi_j(xx, yy)
 
-    A_ij = None
 
-    A_ij = V[pind]*grad_psi_j - V[cind]*grad_psi_i
 
-    if A_ij is None:
-        print("PROBLEM: A_IJ IS NONE")
-        raise ValueError
-    else:
-        return A_ij
+
+    #------------------------------------------------
+    # Compute psi_i/j(x_k) at neighbouring positions
+    #------------------------------------------------
+
+    psi_i_xk = [None for n in nbors]
+    psi_j_xk = [None for n in nbors]
+
+    psi_null = psi(0, 0, 0, 0, 1, kernel)
+
+    omegas = [0, 0]
+    
+    for i, n in enumerate([iind, jind]):
+        # first compute all psi(xl) from neighbour's neighbours to get weights omega
+        nneigh = find_neighbours(n, x, y, h, fact)
+
+        xl = x[nneigh]
+        yl = y[nneigh]
+
+        for j, nn in enumerate(nneigh):
+            psi_l = compute_psi(x[n], y[n], xl, yl, h[n], kernel)
+
+        omegas[i] = np.sum(psi_l) + psi_null
+
+
+    # now compute psi_i/j(x_k)
+    for i, n in enumerate(nbors):
+        psi_i_xk[i] = psi(xk[i], yk[i], x[iind], y[iind], h[iind], kernel) / omegas[0]
+        psi_j_xk[i] = psi(xk[i], yk[i], x[jind], y[jind], h[jind], kernel) / omegas[1]
+
+
+
+
+
+    #---------------------------------------------
+    # Compute psi_tilde_k(x)
+    #---------------------------------------------
+
+    # compute matrix B
+    B = get_matrix(xx, yy, xk, yk, psi_x)
+
+    # compute psi_tilde_k(xx)
+    psi_tilde_k = np.empty((2, xk.shape[0]))
+    for i in range(xk.shape[0]):
+        dx = np.array([xk[i]-xx, yk[i]-yy])
+        psi_tilde_k[:, i] = np.multiply(np.dot(B, dx), psi_x[i])
+
+
+
+
+    #----------------------------------
+    # Compute A_ij
+    #----------------------------------
+
+    sum_i = np.sum(np.multiply(psi_tilde_k, psi_i_xk ), axis=1)
+    sum_j = np.sum(np.multiply(psi_tilde_k, psi_j_xk ), axis=1)
+
+
+    A_ij = psi_i_of_x * sum_j - psi_j_of_x * sum_i 
+    
+    return A_ij
+
+
+
 
 
 
@@ -259,19 +288,27 @@ def A_ij_Ivanova(x, y, h, rho, m, nbors):
 
 
 #=============================================================
-def compute_psi(xi, yi, xj, yj, hi, kernel='cubic_spline'):
+def compute_psi(xi, yi, xj, yj, h, kernel='cubic_spline'):
 #=============================================================
     """
     Compute all psi_j(x_i)
     xi, yi: floats; position for which to compute psi's
     xj, yj: arrays of neighbour's positions
-    hi:     float; smoothing length at position xi, yi
+    h:      float; smoothing length at position xi, yi
+            or array of h for xj, yj [used to compute h(x)]
+
+    return numpy array of psi_j(x) 
     """
 
     psi_j = np.zeros(xj.shape[0], dtype=np.float128)
 
-    for i in range(xj.shape[0]):
-        psi_j[i] = psi(xi, yi, xj[i], yj[i], hi, kernel)
+    if isinstance(h, np.ndarray):
+        for i in range(xj.shape[0]):
+            psi_j[i] = psi(xi, yi, xj[i], yj[i], h[i], kernel)
+
+    else:
+        for i in range(xj.shape[0]):
+            psi_j[i] = psi(xi, yi, xj[i], yj[i], h, kernel)
 
     return psi_j
 
@@ -286,8 +323,7 @@ def psi(x, y, xi, yi, hi, kernel='cubic_spline'):
 #====================================================
     """
     UNNORMALIZED Volume fraction at position x of some particle
-    with coordinates xi, yi
-    ind: neighbour index in x/y/h array
+    with coordinates xi, yi, smoothing length hi
     """
     q = np.float128(np.sqrt((x - xi)**2 + (y - yi)**2)/hi)
 
@@ -318,5 +354,32 @@ def get_matrix(xi, yi, xj, yj, psi_j):
 
     B = E.getI()
     return B
+
+
+
+
+
+#========================================================
+def h_of_x(xx, yy, x, y, h, m, rho, kernel='cubic_spline', fact=2):
+#========================================================
+    """
+    Compute h(x) at position (xx, yy), where there is 
+    not necessariliy a particle
+    x, y, h : full particle arrays
+    """
+
+    nbors = find_neighbours_arbitrary_x(xx, yy, x, y, h, fact)
+
+    xj = x[nbors]
+    yj = y[nbors]
+    hj = h[nbors]
+
+    psi_j = compute_psi(xx, yy, xj, yj, hj, kernel)
+    psi_j /= np.sum(psi_j)
+
+    hh = np.sum(hj*psi_j)
+
+    return hh
+
 
 

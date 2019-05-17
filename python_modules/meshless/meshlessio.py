@@ -42,6 +42,7 @@ def get_sample_size():
     """
 
     import os
+    import numpy as np
 
     filelist = os.listdir()
     snaplist = [ ]
@@ -63,7 +64,7 @@ def get_sample_size():
 
     steps = int(np.sqrt(len(snaplist)))
 
-    nx = steps - 1
+    nx = steps
     filenummax = highest
     fileskip = int((highest - lowest)/(steps - 1))
 

@@ -37,24 +37,70 @@ def find_index(x, y, h, pcoord):
 def find_neighbours(ind, x, y, h, fact=2):
 #============================================
     """
-    Find indices of all neighbours within fact*h (where kernel != 0)
+    Find indices of all neighbours of a particle with index ind
+    within fact*h (where kernel != 0)
+    x, y, h: arrays of positions/h of all particles
+    returns list of neighbour indices
     """
-
 
     x0 = x[ind]
     y0 = y[ind]
     fhsq = h[ind]*h[ind]*fact*fact
-    neigh = []
+    neigh = [None for i in x]
 
+    j = 0
     for i in range(x.shape[0]):
         if i==ind:
             continue
 
         dist = (x[i]-x0)**2 + (y[i]-y0)**2
         if dist < fhsq:
-            neigh.append(i)
+            neigh[j] = i
+            j+=1
 
-    return neigh
+    return neigh[:j]
+
+
+
+
+#===========================================================
+def find_neighbours_arbitrary_x(x0, y0, x, y, h, fact=2):
+#===========================================================
+    """
+    Find indices of all neighbours around position x0, y0
+    within fact*h (where kernel != 0)
+    x, y, h: arrays of positions/h of all particles
+    returns list of neighbour indices
+    """
+
+
+    neigh = [None for i in x]
+    j = 0
+
+
+    if isinstance(h, np.ndarray):
+        fsq = fact*fact
+
+        for i in range(x.shape[0]):
+            dist = (x[i]-x0)**2 + (y[i]-y0)**2
+            fhsq = h[i]*h[i]*fsq
+            if dist < fhsq:
+                neigh[j]=i
+                j+=1
+
+    else:
+        fhsq = fact*fact*h*h
+        for i in range(x.shape[0]):
+            dist = (x[i]-x0)**2 + (y[i]-y0)**2
+            if dist < fhsq:
+                neigh[j] = i
+                j+=1
+
+
+    return neigh[:j]
+
+
+
 
 
 

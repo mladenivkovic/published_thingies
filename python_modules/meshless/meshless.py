@@ -17,9 +17,9 @@ from particles import *
 import numpy as np
 
 
-#=================================================================
+#==========================================================================
 def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=2):
-#=================================================================
+#==========================================================================
     """
     Compute A_ij as defined by Hopkins 2015
     i, j: particle indices for x, y, h, m arrays
@@ -66,11 +66,13 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=2):
     if debug:
         print('psi_tilde_j', psi_tilde_j)
 
+
+
     #---------------------------------------------------------------------------
     # Part 2: values of psi/psi_tilde of particle i at neighbour positions x_j
     #---------------------------------------------------------------------------
 
-    psi_i = np.zeros(len(nbors), dtype=np.float128)         # psi_i(xj)
+    psi_i = np.zeros(len(nbors), dtype=np.float128)          # psi_i(xj)
     psi_tilde_i = np.empty((len(nbors), 2), dtype=np.float)  # psi_tilde_i(x_j)
 
     for i, n in enumerate(nbors):
@@ -104,7 +106,8 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=2):
 
 
     #-------------------------------
-    # Part 3: Compute A_ij    #-------------------------------
+    # Part 3: Compute A_ij    
+    #-------------------------------
 
     A_ij = np.empty((len(nbors),2), dtype = np.float)
 
@@ -128,44 +131,9 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=2):
 
 
 
-#====================================================
-def x_ij(pind, x, y, h, nbors=None, which=None):
-#====================================================
-    """
-    compute x_ij for all neighbours of particle with index pind
-    if which=integer is given, instead compute only for specific particle
-    where which= that particle's ID
-    """
-
-
-    if which is not None:
-        hfact = h[pind]/(h[pind]+h[which])
-        x_ij = np.array([x[pind]-hfact*(x[pind]-x[which]), y[pind]-hfact*(y[pind]-y[which])])
-        return x_ij
-
-    elif nbors is not None:
-        x_ij = np.empty((len(nbors),2), dtype = np.float)
-        for i,n in enumerate(nbors):
-            hfact = h[pind]/(h[pind]+h[n])
-            x_ij[i] = np.array([x[pind]-hfact*(x[pind]-x[n]), y[pind]-hfact*(y[pind]-y[n])])
-
-        return x_ij
-
-    else:
-        print("Gotta give me a list of neighbours or a single particle info for x_ij")
-        quit()
-
-    return
-
-
-
-
-
-
-
-#===========================================================================================
+#=======================================================================================================
 def Integrand_Aij_Ivanova(iind, jind, xx, yy, hh, x, y, h, m, rho, kernel='cubic_spline', fact=2):
-#===========================================================================================
+#=======================================================================================================
     """
     Compute the effective area integrand for the particles iind jind at
     the positions xx, yy
@@ -200,14 +168,20 @@ def Integrand_Aij_Ivanova(iind, jind, xx, yy, hh, x, y, h, m, rho, kernel='cubic
     psi_x /= omega
     psi_x = np.float64(psi_x)
 
-
-
     # find where psi_i and psi_j are in that array
-    inb = nbors.index(iind)
-    jnb = nbors.index(jind)
+    try:
+        inb = nbors.index(iind)
+        psi_i_of_x = psi_x[inb] # psi_i(xx, yy)
+    except ValueError:
+        psi_i_of_x = 0 # can happen for too small smoothing lengths
+        print("Exception in psi_i_of_x: iind not found in neighbour list")
 
-    psi_i_of_x = psi_x[inb] # psi_i(xx, yy)
-    psi_j_of_x = psi_x[jnb] # psi_j(xx, yy)
+    try:
+        jnb = nbors.index(jind)
+        psi_j_of_x = psi_x[jnb] # psi_j(xx, yy)
+    except ValueError:
+        psi_j_of_x = 0 # can happen for too small smoothing lengths
+        print("Exception in psi_j_of_x: jind not found in neighbour list")
 
 
 
@@ -272,6 +246,43 @@ def Integrand_Aij_Ivanova(iind, jind, xx, yy, hh, x, y, h, m, rho, kernel='cubic
     A_ij = psi_i_of_x * sum_j - psi_j_of_x * sum_i 
     
     return A_ij
+
+
+
+
+
+
+
+#====================================================
+def x_ij(pind, x, y, h, nbors=None, which=None):
+#====================================================
+    """
+    compute x_ij for all neighbours of particle with index pind
+    if which=integer is given, instead compute only for specific particle
+    where which= that particle's ID
+    """
+
+
+    if which is not None:
+        hfact = h[pind]/(h[pind]+h[which])
+        x_ij = np.array([x[pind]-hfact*(x[pind]-x[which]), y[pind]-hfact*(y[pind]-y[which])])
+        return x_ij
+
+    elif nbors is not None:
+        x_ij = np.empty((len(nbors),2), dtype = np.float)
+        for i,n in enumerate(nbors):
+            hfact = h[pind]/(h[pind]+h[n])
+            x_ij[i] = np.array([x[pind]-hfact*(x[pind]-x[n]), y[pind]-hfact*(y[pind]-y[n])])
+
+        return x_ij
+
+    else:
+        print("Gotta give me a list of neighbours or a single particle info for x_ij")
+        quit()
+
+    return
+
+
 
 
 

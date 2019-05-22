@@ -39,6 +39,16 @@ def get_sample_size():
 #===========================
     """
     Count how many files we're dealing with
+    Assumes snapshots start with "snapshot-" string and contain
+    two numbers: snpshot-XXX-YYY_ZZZZ.hdf5, where both XXX and YYY
+    are integers, have the same minimal, maximal value and same
+    difference between two consecutive numbers.
+
+    this is intended for numbered output.
+    Returns:
+        nx : number of files (in one direction)
+        filenummax: highest XXX
+        fileskip: integer difference between two XXX or YYY
     """
 
     import os

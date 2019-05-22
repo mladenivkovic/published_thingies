@@ -12,10 +12,21 @@ kernels = ['cubic_spline', 'quintic_spline',
         'gaussian', 'gaussian_compact', 'supergaussian',
         'wendland_C2', 'wendland_C4', 'wendland_C6']
 
-# factors of all kernels for which fact*h = 0
-kernelfacts = [2, 3,
-        1000, 3, 3, 
+# factors of all kernels for which fact*H = 0
+kernelfacts = [2, 2,
+        1000, 2, 2,
         2, 2, 2]
+
+kernels_shortlist = ['cubic_spline', 'quintic_spline',
+        'wendland_C2', 'wendland_C4', 'wendland_C6']
+
+kernel_shortlist_facts = [2, 2,
+        2, 2, 2]
+
+kernel_shortlist_H_over_h = [1.778002, 2.158131,
+        1.897367, 2.171239, 2.415230]
+
+
 
 
 
@@ -53,13 +64,15 @@ def W(q, h, kernel='cubic_spline'):
 
 
     elif kernel == 'quintic_spline':
+        # re-scale to H = 3
+        q = 1.5*q
+        sigma = 9.0/4.0 * 7.0/(478*np.pi*h*h)
 
-        sigma = 7/(478*np.pi*h*h)
-        if q <= 1:
+        if q < 1:
             return sigma * ((3-q)**5 - 6*(2-q)**5 + 15*(1-q)**5)
-        elif q<=2:
+        elif q<2:
             return sigma * ((3-q)**5 - 6*(2-q)**5)
-        elif q<=3:
+        elif q<3:
             return sigma * ((3-q)**5)
         else:
             return 0
@@ -78,6 +91,8 @@ def W(q, h, kernel='cubic_spline'):
 
     elif kernel == 'gaussian_compact':
         # gaussian with compact support
+        # re-scale to H = 3
+        q = 1.5*q
 
         sigma = 1./(np.pi*h*h)
 
@@ -90,6 +105,8 @@ def W(q, h, kernel='cubic_spline'):
 
 
     elif kernel == 'supergaussian':
+        # re-scale to H = 3
+        q = 1.5*q
 
         if q <= 3:
             sigma = 1./(np.sqrt(np.pi)*h)**3

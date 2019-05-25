@@ -10,8 +10,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+try:
+    import meshless as ms
+except ImportError:
+    print("Didn't find 'meshless' module... be sure to add it to your pythonpath!")
+    quit(2)
 
-import meshless as ms
 
 
 
@@ -21,7 +25,7 @@ import meshless as ms
 
 
 # temp during rewriting
-srcfile = './snapshot_for_hopkins.hdf5'    # swift output file
+srcfile = './snapshot_uniform.hdf5'    # swift output file
 ptype = 'PartType0'                 # for which particle type to look for
 pcoord = [0.5, 0.5]                 # coordinates of particle to work for
 

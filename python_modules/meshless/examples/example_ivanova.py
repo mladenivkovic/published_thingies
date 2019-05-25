@@ -84,7 +84,7 @@ def main():
 
     print("Computing effective surfaces")
 
-    A_ij = ms.Aij_Hopkins(pind, x, y, H, m, rho)
+    A_ij = ms.Aij_Ivanova(pind, x, y, H, m, rho)
     x_ij = ms.x_ij(pind, x, y, H, nbors=nbors)
 
     
@@ -116,7 +116,7 @@ def main():
     ax1.set_xlim((0.25,0.75))
     ax1.set_ylim((0.25,0.75))
 
-    ax1.set_title(r'Hopkins $\mathbf{A}_{ij}$ at $\mathbf{x}_{ij} = \mathbf{x}_i + \frac{h_i}{h_i+h_j}(\mathbf{x}_j - \mathbf{x}_i)$', fontsize=18, pad=18)
+    ax1.set_title(r'Ivanova $\mathbf{A}_{ij}$ at $\mathbf{x}_{ij} = \mathbf{x}_i + \frac{h_i}{h_i+h_j}(\mathbf{x}_j - \mathbf{x}_i)$', fontsize=18, pad=18)
     ax1.set_xlabel('x')
     ax1.set_ylabel('y')
 

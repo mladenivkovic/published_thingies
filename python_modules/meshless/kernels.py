@@ -9,8 +9,11 @@ import numpy as np
 
 # Names of all available kernels
 kernels = [ 'cubic_spline', 'quartic_spline',   'quintic_spline', 
-            'wendland_C2',  'wendland_C4',      'wendland_C6',
-            'gaussian']
+            'wendland_C2',  'wendland_C4',      'wendland_C6']
+
+kernels_with_gaussian = [   'cubic_spline', 'quartic_spline',   'quintic_spline', 
+                            'wendland_C2',  'wendland_C4',      'wendland_C6',
+                            'gaussian']
 
 # factors of all kernels for which fact*H = 0
 kernelfacts = [ 1, 1, 1,
@@ -23,7 +26,7 @@ kernel_H_over_h = [1.778002, 1.977173, 2.158131,
 
 
 kernel_H_over_h_dict = {}
-for i,kernel in enumerate(kernels):
+for i,kernel in enumerate(kernels_with_gaussian):
     kernel_H_over_h_dict[kernel] = kernel_H_over_h[i]
 
 

@@ -9,15 +9,19 @@ import numpy as np
 
 
 
-#===============================
-def find_index(x, y, pcoord):
-#===============================
+#===============================================
+def find_index(x, y, pcoord, tolerance=1e-3):
+#===============================================
     """
     Find the index in the read-in arrays where
     the particle with coordinates of your choice is
-    """
 
-    tolerance = 1e-6
+    x, y:       arrays of x, y positions of all particles
+    pcoors:     array/list of x,y position of particle to look for
+    tolerance:  how much of a tolerance to use to identify particle
+                useful when you have random perturbations of a
+                uniform grid with unknown exact positions
+    """
 
     for i in range(x.shape[0]):
         if abs(x[i]-pcoord[0]) < tolerance and abs(y[i] - pcoord[1]) < tolerance:

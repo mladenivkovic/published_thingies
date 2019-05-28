@@ -44,15 +44,11 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1):
     # Part 1: For particle at x_i (Our chosen particle)
     #-------------------------------------------------------
 
-    # save and store psi(dx=0, dy=0)
-    psi_null = psi(0,0,0,0,1,kernel)
-
     # compute psi_j(x_i)
     psi_j = compute_psi(x[pind], y[pind], xj, yj, h[pind], kernel)
 
-
     # normalize psi_j
-    omega_xi =  (np.sum(psi_j) + psi_null)
+    omega_xi =  (np.sum(psi_j) + psi(0,0,0,0,h[pind],kernel))
     psi_j /= omega_xi
     psi_j = np.float64(psi_j)
 
@@ -85,7 +81,7 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1):
             if nn == pind: # store psi_i, which is the psi for the particle whe chose at position xj; psi_i(xj)
                 psi_i[i] = psi_k[j]
     
-        omega_xj = (np.sum(psi_k) + psi_null)
+        omega_xj = (np.sum(psi_k) + psi(0,0,0,0,h[nn],kernel))
 
         psi_i[i]/= omega_xj
         psi_k /= omega_xj
@@ -119,6 +115,95 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1):
 
 
 #==========================================================================
+def Aij_Hopkins_v2(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1):
+#==========================================================================
+    """
+    Compute A_ij as defined by Hopkins 2015, second version
+    pind:           particle index for which to work for (The i in A_ij)
+    x, y, m, rho:   full data arrays as read in from hdf5 file
+    h:              kernel support radius array
+    kernel:         which kernel to use
+    fact:           factor for h for limit of neighbour search; neighbours are closer than fact*h
+
+    returns:
+        A_ij: array of A_ij, containing x and y component for every neighbour j of particle i
+    """
+
+
+    npart = x.shape[0]
+
+
+    # compute all psi_k(x_l) for all l, k
+    # first index: index k of psi: psi_k(x)
+    # second index: index of x_l: psi(x_l)
+    psi_k_at_l = np.zeros((npart, npart), dtype=np.float128)
+
+    for k in range(npart):
+        for l in range(npart):
+            # kernels are symmetric in x_i, x_j, but h can vary!!!!
+            psi_k_at_l[k,l] = psi(x[l], y[l], x[k], y[k], h[l], kernel)
+
+    neighbours = [[] for i in x]
+    omega = np.zeros(npart, dtype=np.float128)
+
+    for l in range(npart):
+
+        # find and store all neighbours;
+        neighbours[l] = find_neighbours(l, x, y, h, fact)
+
+        # compute normalisation omega for all particles
+        # needs psi_k_at_l to be computed already
+        omega[l] = np.sum(psi_k_at_l[:, l])
+        # omega_k = sum_l W(x_k - x_l, h_k) = sum_l psi_l(x_k) as it is currently stored in memory
+
+
+
+    # normalize psi's and convert to float64 for linalg module
+    for k in range(npart):
+        psi_k_at_l[:, k] /= omega[k]
+    psi_k_at_l = np.float64(psi_k_at_l)
+
+
+    # compute all matrices B_k
+    B_k = np.zeros((npart), dtype=np.matrix)
+    for k in range(npart):
+        nbors = neighbours[k]
+        # nbors now contains all neighbours l
+        B_k[k] = get_matrix(x[k], y[k], x[nbors], y[nbors], psi_k_at_l[nbors, k])
+
+
+
+    # compute all psi_tilde_k at every l
+    psi_tilde_k_at_l = np.zeros((npart, npart, 2))
+    for k in range(npart):
+        for l in range(npart):
+
+            dx = np.array([x[k]-x[l], y[k]-y[l]])
+            psi_tilde_k_at_l[k,l] = np.dot(B_k[l], dx) * psi_k_at_l[k,l]
+
+ 
+
+    # now compute A_ij for all neighbours j of i
+    nbors = neighbours[pind]
+
+    A_ij = np.zeros((len(nbors), 2), dtype=np.float64)
+
+    for i,j in enumerate(nbors): 
+
+        A_ij[i] = V(pind, m, rho) * psi_tilde_k_at_l[j, pind] - V(j, m, rho) * psi_tilde_k_at_l[pind, j]
+
+ 
+    return A_ij
+
+
+
+
+
+
+
+
+
+#==========================================================================
 def Aij_Ivanova(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1):
 #==========================================================================
     """
@@ -143,10 +228,9 @@ def Aij_Ivanova(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1):
     psi_k_at_l = np.zeros((npart, npart), dtype=np.float128)
 
     for k in range(npart):
-        for l in range(k, npart):
-            # kernels are symmetric: just compute half
+        for l in range(npart):
+            # kernels are symmetric in x_i, x_j, but h can vary!!!!
             psi_k_at_l[k,l] = psi(x[l], y[l], x[k], y[k], h[l], kernel)
-            psi_k_at_l[l,k] = psi_k_at_l[k,l]
 
 
     neighbours = [[] for i in x]
@@ -161,17 +245,14 @@ def Aij_Ivanova(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1):
         # needs psi_k_at_l to be computed already
         omega[l] =  np.sum(psi_k_at_l[:, l])
         # omega_k = sum_l W(x_k - x_l) = sum_l psi_l(x_k) as it is currently stored in memory
-        # at this point, the psi arrays are symmetric anyway, so it doesn't actually matter
-
 
 
 
 
     # normalize psi's and convert to float64 for linalg module
     for k in range(npart):
-        psi_k_at_l[k, :] /= omega[k]
+        psi_k_at_l[:, k] /= omega[k]
     psi_k_at_l = np.float64(psi_k_at_l)
-
 
 
 
@@ -181,7 +262,6 @@ def Aij_Ivanova(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1):
         nbors = neighbours[k]
         # nbors now contains all neighbours l
         B_k[k] = get_matrix(x[k], y[k], x[nbors], y[nbors], psi_k_at_l[nbors, k])
-
 
 
     # compute all psi_tilde_k at every l
@@ -310,7 +390,6 @@ def Integrand_Aij_Ivanova(iind, jind, xx, yy, hh, x, y, h, m, rho, kernel='cubic
     psi_i_xk = [None for n in nbors]
     psi_j_xk = [None for n in nbors]
 
-    psi_null = psi(0, 0, 0, 0, 1, kernel)
 
     omegas = [0, 0]
     
@@ -324,7 +403,7 @@ def Integrand_Aij_Ivanova(iind, jind, xx, yy, hh, x, y, h, m, rho, kernel='cubic
         for j, nn in enumerate(nneigh):
             psi_l = compute_psi(x[n], y[n], xl, yl, h[n], kernel)
 
-        omegas[i] = np.sum(psi_l) + psi_null
+        omegas[i] = np.sum(psi_l) + psi(0, 0, 0, 0, h[iind], kernel)
 
 
     # now compute psi_i/j(x_k)

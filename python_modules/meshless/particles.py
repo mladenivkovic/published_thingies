@@ -237,3 +237,35 @@ def find_added_particle(ids):
 
 
 
+
+#=====================================================
+def get_dx(x1, x2, y1, y2, L=1, periodic=True):
+#=====================================================
+    """
+    Compute difference of vectors [x1 - x2, y1 - y2] while
+    checking for periodicity if necessary
+    L:          boxsize
+    periodic:   whether to assume periodic boundaries
+    """
+
+    #  dx = x - xi
+    #  dy = y - yi
+    dx = x1 - x2
+    dy = y1 - y2
+
+    if periodic:
+
+        Lhalf = 0.5*L
+
+        if dx > Lhalf:
+            dx -= L
+        elif dx < -Lhalf:
+            dx += L
+
+        if dy > Lhalf:
+            dy -= L
+        elif dy < -Lhalf:
+            dy += L
+
+
+    return dx, dy

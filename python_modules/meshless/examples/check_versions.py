@@ -113,15 +113,15 @@ def main():
         print("Sum Hopkins:", np.sum(A_ij_Hopkins, axis=0)) 
         print("Sum Hopkins_v2:", np.sum(A_ij_Hopkins_v2, axis=0)) 
 
-        print("===================================================")
-        print("===================================================")
-        print("===================================================")
-
         print("Max difference x:", np.max((A_ij_Hopkins[:,0] - A_ij_Hopkins_v2[:,0])/A_ij_Hopkins[:,0]))
         print("Max difference y:", np.max((A_ij_Hopkins[:,1] - A_ij_Hopkins_v2[:,1])/A_ij_Hopkins[:,1]))
         abs1 = np.sqrt(A_ij_Hopkins[:,0]**2 + A_ij_Hopkins[:,1]**2)
         abs2 = np.sqrt(A_ij_Hopkins_v2[:,0]**2 + A_ij_Hopkins_v2[:,1]**2)
         print("Max difference norm:", np.max((abs1 - abs2)/abs1))
+        print("===================================================")
+        print("===================================================")
+        print("===================================================")
+
         print()
 
         for ax in [ax1, ax2]:
@@ -216,7 +216,8 @@ def main():
 
 
     plt.tight_layout()
-    plt.savefig('check_versions.png', dpi=200)
+    #  plt.savefig('check_versions.png', dpi=200)
+    plt.show()
 
 
 

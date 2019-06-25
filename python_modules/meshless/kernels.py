@@ -10,6 +10,8 @@ import numpy as np
 # Names of all available kernels
 kernels = [ 'cubic_spline', 'quartic_spline',   'quintic_spline', 
             'wendland_C2',  'wendland_C4',      'wendland_C6']
+kernel_derivatives = [ 'cubic_spline' ]#, 'quartic_spline',   'quintic_spline', 
+            #  'wendland_C2',  'wendland_C4',      'wendland_C6']
 
 kernels_with_gaussian = [   'cubic_spline', 'quartic_spline',   'quintic_spline', 
                             'wendland_C2',  'wendland_C4',      'wendland_C6',
@@ -63,7 +65,8 @@ def W(q, h, kernel='cubic_spline'):
         if q < 0.5:
             res =  3 * q**2 * (q - 1) + 0.5
         elif q < 1:
-            res =  q * (q * (3 - q) - 3) + 1
+            #  res =  q * (q * (3 - q) - 3) + 1
+            res = -q**3 + 3*q**2 -3*q + 1
         else:
             return 0
  
@@ -211,6 +214,61 @@ def W(q, h, kernel='cubic_spline'):
 
 
     return
+
+
+
+
+
+
+#=====================================
+def dWdr(q, h, kernel='cubic_spline'):
+#=====================================
+    """
+    Various gradients of kernels
+
+    q: dx / h
+    h: compact support radius, not smoothing length!
+
+    returns dW/dr = dW/dq dq/dr = 1/h * dW/dq
+    where q = r/h
+
+    kernels are scaled such that W(q > 1) = 0
+
+    Currently implemented:
+        cubic_spline, 
+        # not yet, just placeholders:
+        #  quintic_spline,
+        #  wendland_C2,
+        #  wendland_C4,
+        #  wendland_C6,
+        #  gaussian (no compact support)
+    """ 
+    #  https://pysph.readthedocs.io/en/latest/reference/kernels.html#liu2010
+
+
+
+    #--------------------------------------
+    if kernel == 'cubic_spline': 
+    #--------------------------------------
+        if q < 0.5:
+            res =  9*q**2 - 6*q
+        elif q < 1:
+            res =  6*q - 3*q**2 - 3
+        else:
+            return 0
+ 
+        #  sigma = 80./(7*pi*h**2) * 1 / h
+        sigma = 3.63782727067189/h**3
+        return sigma*res
+
+    else:
+        raise ValueError("Didn't find kernel", kernel)
+
+
+    return
+
+
+
 
 
 

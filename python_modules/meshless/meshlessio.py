@@ -34,15 +34,17 @@ def read_file(srcfile, ptype):
 
 
 
-#===========================
-def get_sample_size():
-#===========================
+#====================================
+def get_sample_size(prefix=None):
+#====================================
     """
     Count how many files we're dealing with
     Assumes snapshots start with "snapshot-" string and contain
-    two numbers: snpshot-XXX-YYY_ZZZZ.hdf5, where both XXX and YYY
+    two numbers: snashot-XXX-YYY_ZZZZ.hdf5, where both XXX and YYY
     are integers, have the same minimal, maximal value and same
     difference between two consecutive numbers.
+
+    if prefix is given, it will prepend it to snapshots.
 
     this is intended for numbered output.
     Returns:
@@ -54,7 +56,11 @@ def get_sample_size():
     import os
     import numpy as np
 
-    filelist = os.listdir()
+    if prefix is not None:
+        filelist = os.listdir(prefix)
+    else:
+        filelist = os.listdir()
+
     snaplist = [ ]
     for f in filelist:
         if f.startswith('snapshot-'):

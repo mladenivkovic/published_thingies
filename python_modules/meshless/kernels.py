@@ -10,8 +10,8 @@ import numpy as np
 # Names of all available kernels
 kernels = [ 'cubic_spline', 'quartic_spline',   'quintic_spline', 
             'wendland_C2',  'wendland_C4',      'wendland_C6']
-kernel_derivatives = [ 'cubic_spline' ]#, 'quartic_spline',   'quintic_spline', 
-            #  'wendland_C2',  'wendland_C4',      'wendland_C6']
+kernel_derivatives = [ 'cubic_spline', 'quartic_spline',   'quintic_spline', 
+            'wendland_C2',  'wendland_C4',      'wendland_C6']
 
 kernels_with_gaussian = [   'cubic_spline', 'quartic_spline',   'quintic_spline', 
                             'wendland_C2',  'wendland_C4',      'wendland_C6',
@@ -236,12 +236,10 @@ def dWdr(q, h, kernel='cubic_spline'):
 
     Currently implemented:
         cubic_spline, 
-        # not yet, just placeholders:
-        #  quintic_spline,
-        #  wendland_C2,
-        #  wendland_C4,
-        #  wendland_C6,
-        #  gaussian (no compact support)
+        quintic_spline,
+        wendland_C2,
+        wendland_C4,
+        wendland_C6,
     """ 
     #  https://pysph.readthedocs.io/en/latest/reference/kernels.html#liu2010
 
@@ -261,8 +259,92 @@ def dWdr(q, h, kernel='cubic_spline'):
         sigma = 3.63782727067189/h**3
         return sigma*res
 
-    else:
-        raise ValueError("Didn't find kernel", kernel)
+
+
+
+    #--------------------------------------
+    elif kernel == 'quartic_spline':
+    #--------------------------------------
+
+        if q < 0.2:
+            res = 24*q**3 - 4.8*q
+        elif q < 0.6:
+            res = -16*q**3 + 24*q**2 - 9.6*q + 8/25
+        elif q < 1:
+            res = 4*q**3 - 12*q**2 + 12*q - 4
+        else:
+            return 0
+
+        sigma = 5**6 * 3 / (2398 * np.pi * h**3)
+        return sigma * res
+
+
+
+
+    #---------------------------------------
+    elif kernel == 'quintic_spline':
+    #---------------------------------------
+        if q < 0.333333333333:
+            res = 40*q**3 - 50*q**4 - 4.44444444444*q
+        elif q<0.666666666666:
+            res = 25*q**4 -60*q**3 + 50*q**2 - 15.555555555555*q + 0.9259259259259259
+        elif q<1:
+            res = 20*q**3 - 5*q**4 + 20*q - 30*q**2 - 5
+        else:
+            return 0
+
+        #  sigma = 3**7*7/(478*pi)/h**2
+        sigma = 10.1945733213130/h**3
+        return res * sigma
+
+
+
+
+
+
+
+    #-------------------------------------
+    elif kernel == 'wendland_C2':
+    #-------------------------------------
+
+        if q < 1:
+            #  sigma = 7/(np.pi * h**2)
+            sigma =2.228169203286535/h**3
+            return sigma * (20*q**4 - 60*q**3 + 60*q**2 - 20*q) 
+        else:
+            return 0
+
+
+
+
+
+    #-------------------------------------
+    elif kernel == 'wendland_C4':
+    #-------------------------------------
+
+        if q < 1:
+            #  sigma = 9/(np.pi*h**2)
+            sigma = 2.864788975654116/h**3
+
+            return sigma*(93.3333333333*q**7 - 448*q**6 + 840*q**5 - 746.6666666666*q**4 + 280*q**3 - 18.66666666666666*q)
+        else:
+            return 0
+
+
+
+
+
+    #-------------------------------------
+    elif kernel == 'wendland_C6':
+    #-------------------------------------
+        
+        if q < 1:
+            #  sigma = 78/(7*np.pi*h**2)
+            sigma = 3.546881588905096/h**3
+            return sigma * ( 352*q**10 - 2310*q**9 + 6336*q**8 - 9240*q**7 + 7392*q**6 - 2772*q**5 + 264*q**3 - 22*q)
+        else:
+            return 0
+
 
 
     return

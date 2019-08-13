@@ -33,6 +33,28 @@ def find_index(x, y, pcoord, tolerance=1e-3):
 
 
 
+#===============================================
+def find_index_by_id( ids, id_to_look_for ):
+#===============================================
+    """
+    Find the index in the read-in arrays where
+    the particle with id_to_look_for is
+
+        ids:    numpy array of particle IDs
+        id_to_look_for : which ID to find
+
+    returns:
+        pind:  index of particle with id_to_look_for
+
+    """
+
+    pind = np.asscalar(np.where(ids==id_to_look_for)[0])
+
+    return pind
+
+
+
+
 
 #================================================================
 def find_neighbours(ind, x, y, h, fact=1, L=1, periodic=True):

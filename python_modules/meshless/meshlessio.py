@@ -19,11 +19,17 @@ def read_file(srcfile, ptype):
 
     x = f[ptype]['Coordinates'][:,0]
     y = f[ptype]['Coordinates'][:,1]
-    h = f[ptype]['SmoothingLength'][:]
-    rho = f[ptype]['Density'][:]
     m = f[ptype]['Masses'][:]
     ids = f[ptype]['ParticleIDs'][:]
 
+    try:
+        # old SWIFT header versions
+        h = f[ptype]['SmoothingLength'][:]
+        rho = f[ptype]['Densities'][:]
+    except KeyError:
+        # new SWIFT header versions
+        h = f[ptype]['SmoothingLengths'][:]
+        rho = f[ptype]['Densities'][:]
     npart = x.shape[0]
 
     f.close()

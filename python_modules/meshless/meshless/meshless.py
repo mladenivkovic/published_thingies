@@ -8,10 +8,15 @@
 #
 #===========================================
 
-
-from .meshlessio import *
-from .kernels import *
-from .particles import *
+try:
+    from .meshlessio import *
+    from .kernels import *
+    from .particles import *
+except ImportError:
+    # in case you're not using it as a package, but directly in the pythonpath
+    from meshlessio import *
+    from kernels import *
+    from particles import *
 
 
 import numpy as np
@@ -27,8 +32,8 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, perio
     h:              kernel support radius array
     kernel:         which kernel to use
     fact:           factor for h for limit of neighbour search; neighbours are closer than fact*h
-    L:          boxsize
-    periodic:   whether to assume periodic boundaries
+    L:              boxsize
+    periodic:       whether to assume periodic boundaries
 
     returns:
         A_ij: array of A_ij, containing x and y component for every neighbour j of particle i
@@ -47,22 +52,23 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, perio
     #-------------------------------------------------------
 
     # compute psi_j(x_i)
-    psi_j = compute_psi(x[pind], y[pind], xj, yj, h[pind], kernel)
+    psi_j = compute_psi(x[pind], y[pind], xj, yj, h[pind], kernel, fact=fact, L=L, periodic=periodic)
+
 
     # normalize psi_j
     omega_xi =  (np.sum(psi_j) + psi(0,0,0,0,h[pind],kernel))
     psi_j /= omega_xi
     psi_j = np.atleast_1d(np.float64(psi_j))
 
+
     # compute B_i
-    B_i = get_matrix(x[pind], y[pind], xj, yj, psi_j)
+    B_i = get_matrix(x[pind], y[pind], xj, yj, psi_j, L=L, periodic=periodic)
 
     # compute psi_tilde_j(x_i)
     psi_tilde_j = np.empty((len(nbors), 2), dtype=np.float)
     for i, n in enumerate(nbors):
         dx = np.array([xj[i]-x[pind], yj[i]-y[pind]])
         psi_tilde_j[i] = np.dot(B_i, dx) * psi_j[i]
-
 
     #---------------------------------------------------------------------------
     # Part 2: values of psi/psi_tilde of particle i at neighbour positions x_j
@@ -77,7 +83,7 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, perio
         xk = x[nneigh]
         yk = y[nneigh]
         for j, nn in enumerate(nneigh):
-            psi_k = compute_psi(x[n], y[n], xk, yk, h[n], kernel)
+            psi_k = compute_psi(x[n], y[n], xk, yk, h[n], kernel, fact=fact, L=L, periodic=periodic)
             if nn == pind: # store psi_i, which is the psi for the particle whe chose at position xj; psi_i(xj)
                 psi_i[i] = psi_k[j]
     
@@ -88,7 +94,7 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, perio
         psi_k = np.float64(psi_k)
 
         # now compute B_j^{\alpha \beta}
-        B_j = get_matrix(x[n], y[n], xk, yk, psi_k)
+        B_j = get_matrix(x[n], y[n], xk, yk, psi_k, L=L, periodic=periodic)
 
         # get psi_i_tilde(x = x_j)
         dx = np.array([x[pind]-x[n], y[pind]-y[n]])
@@ -105,7 +111,6 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, perio
 
     for i,n in enumerate(nbors):
         A_ij[i] = V(pind, m, rho)*psi_tilde_j[i] - V(n, m, rho)*psi_tilde_i[i]
-
 
     return A_ij
 
@@ -172,7 +177,7 @@ def Aij_Hopkins_v2(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, pe
     for k in range(npart):
         nbors = neighbours[k]
         # nbors now contains all neighbours l
-        B_k[k] = get_matrix(x[k], y[k], x[nbors], y[nbors], psi_k_at_l[nbors, k])
+        B_k[k] = get_matrix(x[k], y[k], x[nbors], y[nbors], psi_k_at_l[nbors, k], L=L, periodic=periodic)
 
 
 
@@ -265,7 +270,7 @@ def Aij_Ivanova_approximate_gradients(pind, x, y, h, m, rho, kernel='cubic_splin
     for k in range(npart):
         nbors = neighbours[k]
         # nbors now contains all neighbours l
-        B_k[k] = get_matrix(x[k], y[k], x[nbors], y[nbors], psi_k_at_l[nbors, k])
+        B_k[k] = get_matrix(x[k], y[k], x[nbors], y[nbors], psi_k_at_l[nbors, k], L=L, periodic=periodic)
 
 
 
@@ -328,8 +333,8 @@ def Aij_Ivanova(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, perio
     h:              kernel support radius array
     kernel:         which kernel to use
     fact:           factor for h for limit of neighbour search; neighbours are closer than fact*h
-    L:          boxsize
-    periodic:   whether to assume periodic boundaries
+    L:              boxsize
+    periodic:       whether to assume periodic boundaries
 
     returns:
         A_ij: array of A_ij, containing x and y component for every neighbour j of particle i
@@ -372,6 +377,7 @@ def Aij_Ivanova(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, perio
         psi_k_at_l[:, k] /= omega[k]
     psi_k_at_l = np.float64(psi_k_at_l)
 
+    print("psi_k_at_l", psi_k_at_l)
 
     # now compute A_ij for all neighbours j of i
     nbors = neighbours[pind]
@@ -605,7 +611,7 @@ def Integrand_Aij_Ivanova(iind, jind, xx, yy, hh, x, y, h, m, rho, kernel='cubic
     #---------------------------------------------
 
     # compute matrix B
-    B = get_matrix(xx, yy, xk, yk, psi_x)
+    B = get_matrix(xx, yy, xk, yk, psi_x, L=L, periodic=periodic)
 
     # compute psi_tilde_k(xx)
     psi_tilde_k = np.empty((2, xk.shape[0]))
@@ -746,9 +752,9 @@ def compute_psi(xi, yi, xj, yj, h, kernel='cubic_spline', fact=1, L=1, periodic=
 #==========================================================================================
     """
     Compute all psi_j(x_i)
-    xi, yi: floats; position for which to compute psi's
-    xj, yj: arrays of neighbour's positions
-    h:      float; smoothing length at position xi, yi
+    xi, yi:     floats; position for which to compute psi's
+    xj, yj:     arrays of neighbour's positions
+    h:          float; smoothing length at position xi, yi
             or array of h for xj, yj [used to compute h(x)]
     kernel:     which kernel to use
     fact:       factor for h for limit of neighbour search; neighbours are closer than fact*h
@@ -811,18 +817,24 @@ def psi(x, y, xi, yi, h, kernel='cubic_spline', fact=1, L=1, periodic=True):
 
 
 
-#=============================================
-def get_matrix(xi, yi, xj, yj, psi_j):
-#=============================================
+#============================================================
+def get_matrix(xi, yi, xj, yj, psi_j, L=1, periodic=True):
+#============================================================
     """
     Get B_i ^{alpha beta}
-    xi, yi: floats; Evaluate B at this position
-    xj, yj: arrays; Neighbouring points
-    psi_j:  array;  volume fraction of neighbours at position x_i; psi_j(x_i)
+
+    xi, yi:         floats; Evaluate B at this position
+    xj, yj:         arrays; Neighbouring points
+    psi_j:          array;  volume fraction of neighbours at position x_i; psi_j(x_i)
+    L:              boxsize
+    periodic:       whether to assume periodic boundaries
     """
 
-    dx = (xj - xi)
-    dy = (yj - yi)
+    dx = np.zeros(xj.shape[0])
+    dy = np.zeros(xj.shape[0])
+
+    for i in range(xj.shape[0]):
+        dx[i], dy[i] = get_dx(xj[i], xi, yj[i], yi, L=L, periodic=periodic)
 
     E00 = np.sum(dx * dx * psi_j)
     E01 = np.sum(dx * dy * psi_j)

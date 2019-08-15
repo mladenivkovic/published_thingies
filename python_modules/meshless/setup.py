@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
         name='Meshless Effective Surfaces',
-        version='0.1.0',
+        version='0.1.2',
         author='Mladen Ivkovic',
         author_email='mladen.ivkovic@hotmail.com',
         packages=['meshless'],
@@ -17,7 +17,7 @@ setup(
                     "examples/check_kernels.py",
                     "examples/check_directions.py"
                 ],
-        long_description=open('README.md').read(),
+        long_description=open('README.rst').read(),
         install_requires=[
             'numpy',
             'matplotlib'

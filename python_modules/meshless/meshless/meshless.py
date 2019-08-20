@@ -130,8 +130,8 @@ def Aij_Hopkins_v2(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, pe
     h:              kernel support radius array
     kernel:         which kernel to use
     fact:           factor for h for limit of neighbour search; neighbours are closer than fact*h
-    L:          boxsize
-    periodic:   whether to assume periodic boundaries
+    L:              boxsize
+    periodic:       whether to assume periodic boundaries
 
     returns:
         A_ij: array of A_ij, containing x and y component for every neighbour j of particle i
@@ -221,8 +221,8 @@ def Aij_Ivanova_approximate_gradients(pind, x, y, h, m, rho, kernel='cubic_splin
     h:              kernel support radius array
     kernel:         which kernel to use
     fact:           factor for h for limit of neighbour search; neighbours are closer than fact*h
-    L:          boxsize
-    periodic:   whether to assume periodic boundaries
+    L:              boxsize
+    periodic:       whether to assume periodic boundaries
 
     returns:
         A_ij: array of A_ij, containing x and y component for every neighbour j of particle i
@@ -319,6 +319,99 @@ def Aij_Ivanova_approximate_gradients(pind, x, y, h, m, rho, kernel='cubic_splin
 
 
 
+#==================================================================================================
+def Aij_Ivanova_all(x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, periodic=True):
+#==================================================================================================
+    """
+    Compute A_ij as defined by Ivanova 2013, using the discretization by Taylor 
+    expansion as Hopkins does it. Use analytical expressions for the 
+    gradient of the kernels instead of the matrix representation.
+    This function computes the effective surfaces of all particles for all their
+    respective neighbours.
+
+    x, y, m, rho:   full data arrays as read in from hdf5 file
+    h:              kernel support radius array
+    kernel:         which kernel to use
+    fact:           factor for h for limit of neighbour search; neighbours are closer than fact*h
+    L:              boxsize
+    periodic:       whether to assume periodic boundaries
+
+    returns:
+        A_ij:       array of A_ij, containing x and y component for every neighbour j of every particle i
+        neighbours: list of lists of neighbour indices for every particle i
+    """
+
+
+    npart = x.shape[0]
+
+
+    # compute all psi_k(x_l) for all l, k
+    # first index: index k of psi: psi_k(x)
+    # second index: index of x_l: psi(x_l)
+    psi_k_at_l = np.zeros((npart, npart), dtype=np.float128)
+
+    for k in range(npart):
+        for l in range(npart):
+            # kernels are symmetric in x_i, x_j, but h can vary!!!!
+            psi_k_at_l[k,l] = psi(x[l], y[l], x[k], y[k], h[l], kernel=kernel, fact=fact, L=L, periodic=periodic)
+
+
+    neighbours = [[] for i in x]
+    omega = np.zeros(npart, dtype=np.float128)
+
+    for l in range(npart):
+
+        # find and store all neighbours;
+        neighbours[l] = find_neighbours(l, x, y, h, fact=fact, L=L, periodic=periodic)
+
+        # compute normalisation omega for all particles
+        # needs psi_k_at_l to be computed already
+        omega[l] =  np.sum(psi_k_at_l[:, l])
+        # omega_k = sum_l W(x_k - x_l) = sum_l psi_l(x_k) as it is currently stored in memory
+
+    grad_psi_k_at_l = get_grad_psi_k_at_l_analytical(x, y, h, omega, psi_k_at_l, 
+            kernel=kernel, fact=fact)
+
+
+    # normalize psi's and convert to float64 for linalg module
+    for k in range(npart):
+        psi_k_at_l[:, k] /= omega[k]
+    psi_k_at_l = np.float64(psi_k_at_l)
+
+
+    maxn = max([len(n) for n in neighbours])
+    A_ij = np.zeros((npart, maxn, 2), dtype=np.float64)
+     
+
+
+    # now compute A_ij for all neighbours j of i
+    for i in range(npart):
+
+        nbors = neighbours[i]
+
+        V_i = 1/omega[i]
+
+        for jind,j in enumerate(nbors): 
+            
+            grad_psi_i_xj = grad_psi_k_at_l[i, j]
+            grad_psi_j_xi = grad_psi_k_at_l[j, i]
+            V_j = 1/omega[j]
+        
+            A_ij[i, jind] = V_j * grad_psi_i_xj - V_i * grad_psi_j_xi
+     
+    # return -A_ij: You will actually use A_ji . F in the formula
+    # for the hydrodynamics, not A_ij . F
+    return -A_ij, neighbours
+
+
+
+
+
+
+
+
+
+
 
 #==================================================================================================
 def Aij_Ivanova(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, periodic=True):
@@ -376,8 +469,6 @@ def Aij_Ivanova(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, perio
     for k in range(npart):
         psi_k_at_l[:, k] /= omega[k]
     psi_k_at_l = np.float64(psi_k_at_l)
-
-    print("psi_k_at_l", psi_k_at_l)
 
     # now compute A_ij for all neighbours j of i
     nbors = neighbours[pind]

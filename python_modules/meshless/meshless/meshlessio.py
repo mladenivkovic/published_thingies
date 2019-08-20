@@ -6,11 +6,19 @@
 
 
 
-#==========================================
-def read_file(srcfile, ptype):
-#==========================================
+#=========================================================
+def read_file(srcfile, ptype='PartType0', sort=False):
+#=========================================================
     """
     Read swift output hdf5 file.
+    srcfile:    string of file to be read in
+    ptype:      which particle type to work with
+    sort:       whether to sort read in arrays by particle ID
+
+    returns:
+    x, y, h, rho, m, ids: numpy arrays of x, y position, 
+        smoothing length, density, mass, particle ID
+    npart: Number of particles
     """
 
     import h5py
@@ -33,6 +41,16 @@ def read_file(srcfile, ptype):
     npart = x.shape[0]
 
     f.close()
+
+    if sort:
+        from numpy import argsort
+        inds = argsort(ids)
+        x = x[inds]
+        y = y[inds]
+        h = h[inds]
+        rho = rho[inds]
+        m = m[inds]
+        ids = ids[inds]
 
     return x, y, h, rho, m, ids, npart
 

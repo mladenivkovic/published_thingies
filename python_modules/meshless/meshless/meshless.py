@@ -228,9 +228,13 @@ def Aij_Ivanova_approximate_gradients(pind, x, y, h, m, rho, kernel='cubic_splin
         A_ij: array of A_ij, containing x and y component for every neighbour j of particle i
     """
 
-
     npart = x.shape[0]
 
+    neighbours = [[] for i in x]
+
+    for l in range(npart):
+        # find and store all neighbours;
+        neighbours[l] = find_neighbours(l, x, y, h, fact=fact, L=L, periodic=periodic)
 
     # compute all psi_k(x_l) for all l, k
     # first index: index k of psi: psi_k(x)
@@ -238,19 +242,15 @@ def Aij_Ivanova_approximate_gradients(pind, x, y, h, m, rho, kernel='cubic_splin
     psi_k_at_l = np.zeros((npart, npart), dtype=np.float128)
 
     for k in range(npart):
-        for l in range(npart):
+        for l in neighbours[k]:
             # kernels are symmetric in x_i, x_j, but h can vary!!!!
             psi_k_at_l[k,l] = psi(x[l], y[l], x[k], y[k], h[l], kernel=kernel, fact=fact, L=L, periodic=periodic)
 
 
-    neighbours = [[] for i in x]
     omega = np.zeros(npart, dtype=np.float128)
 
+
     for l in range(npart):
-
-        # find and store all neighbours;
-        neighbours[l] = find_neighbours(l, x, y, h, fact=fact, L=L, periodic=periodic)
-
         # compute normalisation omega for all particles
         # needs psi_k_at_l to be computed already
         omega[l] =  np.sum(psi_k_at_l[:, l])
@@ -258,11 +258,11 @@ def Aij_Ivanova_approximate_gradients(pind, x, y, h, m, rho, kernel='cubic_splin
 
 
 
-
     # normalize psi's and convert to float64 for linalg module
     for k in range(npart):
         psi_k_at_l[:, k] /= omega[k]
     psi_k_at_l = np.float64(psi_k_at_l)
+
 
 
     # compute all matrices B_k
@@ -277,6 +277,7 @@ def Aij_Ivanova_approximate_gradients(pind, x, y, h, m, rho, kernel='cubic_splin
     # compute all psi_tilde_k at every l
     psi_tilde_k_at_l = np.zeros((npart, npart, 2))
     for k in range(npart):
+        # can't just go over neighbours here!
         for l in range(npart):
 
             dx = np.array([x[k]-x[l], y[k]-y[l]])
@@ -344,6 +345,11 @@ def Aij_Ivanova_all(x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, periodi
 
     npart = x.shape[0]
 
+    neighbours = [[] for i in x]
+
+    for l in range(npart):
+        # find and store all neighbours;
+        neighbours[l] = find_neighbours(l, x, y, h, fact=fact, L=L, periodic=periodic)
 
     # compute all psi_k(x_l) for all l, k
     # first index: index k of psi: psi_k(x)
@@ -351,26 +357,23 @@ def Aij_Ivanova_all(x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, periodi
     psi_k_at_l = np.zeros((npart, npart), dtype=np.float128)
 
     for k in range(npart):
-        for l in range(npart):
+        for l in neighbours[k]:
             # kernels are symmetric in x_i, x_j, but h can vary!!!!
             psi_k_at_l[k,l] = psi(x[l], y[l], x[k], y[k], h[l], kernel=kernel, fact=fact, L=L, periodic=periodic)
 
 
-    neighbours = [[] for i in x]
     omega = np.zeros(npart, dtype=np.float128)
 
+
     for l in range(npart):
-
-        # find and store all neighbours;
-        neighbours[l] = find_neighbours(l, x, y, h, fact=fact, L=L, periodic=periodic)
-
         # compute normalisation omega for all particles
         # needs psi_k_at_l to be computed already
         omega[l] =  np.sum(psi_k_at_l[:, l])
         # omega_k = sum_l W(x_k - x_l) = sum_l psi_l(x_k) as it is currently stored in memory
 
-    grad_psi_k_at_l = get_grad_psi_k_at_l_analytical(x, y, h, omega, psi_k_at_l, 
+    grad_psi_k_at_l = get_grad_psi_k_at_l_analytical(x, y, h, omega, psi_k_at_l, neighbours,
             kernel=kernel, fact=fact)
+
 
 
     # normalize psi's and convert to float64 for linalg module
@@ -436,6 +439,11 @@ def Aij_Ivanova(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, perio
 
     npart = x.shape[0]
 
+    neighbours = [[] for i in x]
+
+    for l in range(npart):
+        # find and store all neighbours;
+        neighbours[l] = find_neighbours(l, x, y, h, fact=fact, L=L, periodic=periodic)
 
     # compute all psi_k(x_l) for all l, k
     # first index: index k of psi: psi_k(x)
@@ -443,25 +451,21 @@ def Aij_Ivanova(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, perio
     psi_k_at_l = np.zeros((npart, npart), dtype=np.float128)
 
     for k in range(npart):
-        for l in range(npart):
+        for l in neighbours[k]:
             # kernels are symmetric in x_i, x_j, but h can vary!!!!
             psi_k_at_l[k,l] = psi(x[l], y[l], x[k], y[k], h[l], kernel=kernel, fact=fact, L=L, periodic=periodic)
 
 
-    neighbours = [[] for i in x]
     omega = np.zeros(npart, dtype=np.float128)
 
+
     for l in range(npart):
-
-        # find and store all neighbours;
-        neighbours[l] = find_neighbours(l, x, y, h, fact=fact, L=L, periodic=periodic)
-
         # compute normalisation omega for all particles
         # needs psi_k_at_l to be computed already
         omega[l] =  np.sum(psi_k_at_l[:, l])
         # omega_k = sum_l W(x_k - x_l) = sum_l psi_l(x_k) as it is currently stored in memory
 
-    grad_psi_k_at_l = get_grad_psi_k_at_l_analytical(x, y, h, omega, psi_k_at_l, 
+    grad_psi_k_at_l = get_grad_psi_k_at_l_analytical(x, y, h, omega, psi_k_at_l, neighbours,
             kernel=kernel, fact=fact)
 
 
@@ -504,6 +508,7 @@ def Aij_Ivanova_analytical_gradients(pind, x, y, h, m, rho, kernel='cubic_spline
     """
     Compute A_ij as defined by Ivanova 2013. Use analytical expressions for the 
     gradient of the kernels instead of the matrix representation.
+    Not the recommended way to do it, needs extra computation.
 
     pind:           particle index for which to work for (The i in A_ij)
     x, y, m, rho:   full data arrays as read in from hdf5 file
@@ -520,6 +525,11 @@ def Aij_Ivanova_analytical_gradients(pind, x, y, h, m, rho, kernel='cubic_spline
 
     npart = x.shape[0]
 
+    neighbours = [[] for i in x]
+
+    for l in range(npart):
+        # find and store all neighbours;
+        neighbours[l] = find_neighbours(l, x, y, h, fact=fact, L=L, periodic=periodic)
 
     # compute all psi_k(x_l) for all l, k
     # first index: index k of psi: psi_k(x)
@@ -527,27 +537,22 @@ def Aij_Ivanova_analytical_gradients(pind, x, y, h, m, rho, kernel='cubic_spline
     psi_k_at_l = np.zeros((npart, npart), dtype=np.float128)
 
     for k in range(npart):
-        for l in range(npart):
+        for l in neighbours[k]:
             # kernels are symmetric in x_i, x_j, but h can vary!!!!
             psi_k_at_l[k,l] = psi(x[l], y[l], x[k], y[k], h[l], kernel=kernel, fact=fact, L=L, periodic=periodic)
 
- 
-    neighbours = [[] for i in x]
+
     omega = np.zeros(npart, dtype=np.float128)
 
 
     for l in range(npart):
-
-        # find and store all neighbours;
-        neighbours[l] = find_neighbours(l, x, y, h, fact=fact, L=L, periodic=periodic)
-
         # compute normalisation omega for all particles
         # needs psi_k_at_l to be computed already
         omega[l] =  np.sum(psi_k_at_l[:, l])
         # omega_k = sum_l W(x_k - x_l) = sum_l psi_l(x_k) as it is currently stored in memory
 
 
-    grad_psi_k_at_l = get_grad_psi_k_at_l_analytical(x, y, h, omega, psi_k_at_l, 
+    grad_psi_k_at_l = get_grad_psi_k_at_l_analytical(x, y, h, omega, psi_k_at_l, neighbours, 
             kernel=kernel, fact=fact)
 
 
@@ -767,14 +772,15 @@ def x_ij(pind, x, y, h, nbors=None, which=None):
 
 
 
-#========================================================================================================================
-def get_grad_psi_k_at_l_analytical(x, y, h, omega, psi_k_at_l, kernel='cubic_spline', fact=1, L=1, periodic=True):
-#========================================================================================================================
+#==============================================================================================================================
+def get_grad_psi_k_at_l_analytical(x, y, h, omega, psi_k_at_l, neighbours, kernel='cubic_spline', fact=1, L=1, periodic=True):
+#==============================================================================================================================
     """
     Compute \nabla \psi_k (x_l) for all particles k and l 
     x, y, h:    arrays of positions and compact support radius of all particles
     omega:      weights; sum_j W(x - xj) for all particles x=x_k
     psi_k_at_l: UNNORMED psi_k(x_l) npart x npart array for all k, l
+    neighbours: list of lists of all neighbours
     kernel:     which kernel to use
     fact:       factor for h for limit of neighbour search; neighbours are closer than fact*h
     L:          boxsize
@@ -794,7 +800,7 @@ def get_grad_psi_k_at_l_analytical(x, y, h, omega, psi_k_at_l, kernel='cubic_spl
 
 
     for k in range(npart):
-        for l in range(npart):
+        for l in neighbours[k]:
             # get kernel gradients
 
             dx, dy = get_dx(x[l], x[k], y[l], y[k], L=L, periodic=periodic)
@@ -812,12 +818,13 @@ def get_grad_psi_k_at_l_analytical(x, y, h, omega, psi_k_at_l, kernel='cubic_spl
     sum_grad_W = np.zeros((npart, 2), dtype=np.float128)
 
     for l in range(npart):
-        sum_grad_W[l] = np.sum(grad_W_k_at_l[:, l], axis=0)
+        sum_grad_W[l] = np.sum(grad_W_k_at_l[neighbours[l], l], axis=0)
 
 
     # first finish computing the gradients: Need W(r, h), which is currently stored as psi
     for k in range(npart):
-        for l in range(npart):
+        for l in neighbours[k]:
+        #  for l in range(npart):
             grad_psi_k_at_l[k, l, 0] = grad_W_k_at_l[k, l, 0]/omega[l] - psi_k_at_l[k, l] * sum_grad_W[l, 0]/omega[l]**2
             grad_psi_k_at_l[k, l, 1] = grad_W_k_at_l[k, l, 1]/omega[l] - psi_k_at_l[k, l] * sum_grad_W[l, 1]/omega[l]**2
 

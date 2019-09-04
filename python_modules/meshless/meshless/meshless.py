@@ -21,6 +21,9 @@ except ImportError:
 
 import numpy as np
 
+# define global float precision here
+my_float = np.float64
+
 
 #===========================================================================================
 def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, periodic=True):
@@ -58,7 +61,10 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, perio
     # normalize psi_j
     omega_xi =  (np.sum(psi_j) + psi(0,0,0,0,h[pind],kernel))
     psi_j /= omega_xi
-    psi_j = np.atleast_1d(np.float64(psi_j))
+    if my_float != np.float:
+        psi_j = np.atleast_1d(psi_j.astype(np.float))
+    else:
+        psi_j = np.atleast_1d(psi_j)
 
 
     # compute B_i
@@ -74,7 +80,7 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, perio
     # Part 2: values of psi/psi_tilde of particle i at neighbour positions x_j
     #---------------------------------------------------------------------------
 
-    psi_i = np.zeros(len(nbors), dtype=np.float128)          # psi_i(xj)
+    psi_i = np.zeros(len(nbors), dtype=my_float)             # psi_i(xj)
     psi_tilde_i = np.empty((len(nbors), 2), dtype=np.float)  # psi_tilde_i(x_j)
 
     for i, n in enumerate(nbors):
@@ -91,14 +97,15 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, perio
 
         psi_i[i]/= omega_xj
         psi_k /= omega_xj
-        psi_k = np.float64(psi_k)
+        if my_float != np.float:
+            psi_k = psi_k.astype(np.float)
 
         # now compute B_j^{\alpha \beta}
         B_j = get_matrix(x[n], y[n], xk, yk, psi_k, L=L, periodic=periodic)
 
         # get psi_i_tilde(x = x_j)
         dx = np.array([x[pind]-x[n], y[pind]-y[n]])
-        psi_tilde_i[i] = np.dot(B_j, dx) * np.float64(psi_i[i])
+        psi_tilde_i[i] = np.dot(B_j, dx) * np.float(psi_i[i])
 
 
     #-------------------------------
@@ -144,7 +151,7 @@ def Aij_Hopkins_v2(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, pe
     # compute all psi_k(x_l) for all l, k
     # first index: index k of psi: psi_k(x)
     # second index: index of x_l: psi(x_l)
-    psi_k_at_l = np.zeros((npart, npart), dtype=np.float128)
+    psi_k_at_l = np.zeros((npart, npart), dtype=my_float)
 
     for k in range(npart):
         for l in range(npart):
@@ -152,7 +159,7 @@ def Aij_Hopkins_v2(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, pe
             psi_k_at_l[k,l] = psi(x[l], y[l], x[k], y[k], h[l], kernel=kernel, fact=fact, L=L, periodic=periodic)
 
     neighbours = [[] for i in x]
-    omega = np.zeros(npart, dtype=np.float128)
+    omega = np.zeros(npart, dtype=my_float)
 
     for l in range(npart):
 
@@ -166,10 +173,11 @@ def Aij_Hopkins_v2(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, pe
 
 
 
-    # normalize psi's and convert to float64 for linalg module
+    # normalize psi's and convert to float for linalg module
     for k in range(npart):
         psi_k_at_l[:, k] /= omega[k]
-    psi_k_at_l = np.float64(psi_k_at_l)
+    if my_float != np.float:
+        psi_k_at_l = psi_k_at_l.astype(np.float)
 
 
     # compute all matrices B_k
@@ -194,7 +202,7 @@ def Aij_Hopkins_v2(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, pe
     # now compute A_ij for all neighbours j of i
     nbors = neighbours[pind]
 
-    A_ij = np.zeros((len(nbors), 2), dtype=np.float64)
+    A_ij = np.zeros((len(nbors), 2), dtype=np.float)
 
     for i,j in enumerate(nbors): 
 
@@ -228,6 +236,8 @@ def Aij_Ivanova_approximate_gradients(pind, x, y, h, m, rho, kernel='cubic_splin
         A_ij: array of A_ij, containing x and y component for every neighbour j of particle i
     """
 
+    print("Warning: This method hasn't been checked thoroughly in a while. Results might not be right.")
+
     npart = x.shape[0]
 
     neighbours = [[] for i in x]
@@ -239,29 +249,34 @@ def Aij_Ivanova_approximate_gradients(pind, x, y, h, m, rho, kernel='cubic_splin
     # compute all psi_k(x_l) for all l, k
     # first index: index k of psi: psi_k(x)
     # second index: index of x_l: psi(x_l)
-    psi_k_at_l = np.zeros((npart, npart), dtype=np.float128)
+    psi_k_at_l = np.zeros((npart, npart), dtype=my_float)
 
     for k in range(npart):
         for l in neighbours[k]:
             # kernels are symmetric in x_i, x_j, but h can vary!!!!
             psi_k_at_l[k,l] = psi(x[l], y[l], x[k], y[k], h[l], kernel=kernel, fact=fact, L=L, periodic=periodic)
 
+        # self contribution part: k = l +> h[k] = h[l], so use h[k] here
+        psi_k_at_l[k, k] = psi(0, 0, 0, 0, h[k], kernel=kernel, fact=fact, L=L, periodic=periodic) 
 
-    omega = np.zeros(npart, dtype=np.float128)
 
+
+
+    omega = np.zeros(npart, dtype=my_float)
 
     for l in range(npart):
         # compute normalisation omega for all particles
         # needs psi_k_at_l to be computed already
-        omega[l] =  np.sum(psi_k_at_l[:, l])
+        omega[l] =  np.sum(psi_k_at_l[neighbours[l], l]) + psi_k_at_l[l, l]
         # omega_k = sum_l W(x_k - x_l) = sum_l psi_l(x_k) as it is currently stored in memory
 
 
 
-    # normalize psi's and convert to float64 for linalg module
+    # normalize psi's and convert to float for linalg module
     for k in range(npart):
         psi_k_at_l[:, k] /= omega[k]
-    psi_k_at_l = np.float64(psi_k_at_l)
+    if my_float != np.float:
+        psi_k_at_l = psi_k_at_l.astype(np.float)
 
 
 
@@ -287,7 +302,7 @@ def Aij_Ivanova_approximate_gradients(pind, x, y, h, m, rho, kernel='cubic_splin
     # now compute A_ij for all neighbours j of i
     nbors = neighbours[pind]
 
-    A_ij = np.zeros((len(nbors), 2), dtype=np.float64)
+    A_ij = np.zeros((len(nbors), 2), dtype=np.float)
 
     for i,j in enumerate(nbors): 
         
@@ -354,51 +369,58 @@ def Aij_Ivanova_all(x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, periodi
     # compute all psi_k(x_l) for all l, k
     # first index: index k of psi: psi_k(x)
     # second index: index of x_l: psi(x_l)
-    psi_k_at_l = np.zeros((npart, npart), dtype=np.float128)
+    psi_k_at_l = np.zeros((npart, npart), dtype=my_float)
 
     for k in range(npart):
         for l in neighbours[k]:
             # kernels are symmetric in x_i, x_j, but h can vary!!!!
             psi_k_at_l[k,l] = psi(x[l], y[l], x[k], y[k], h[l], kernel=kernel, fact=fact, L=L, periodic=periodic)
 
+        # self contribution part: k = l +> h[k] = h[l], so use h[k] here
+        psi_k_at_l[k, k] = psi(0, 0, 0, 0, h[k], kernel=kernel, fact=fact, L=L, periodic=periodic) 
 
-    omega = np.zeros(npart, dtype=np.float128)
+
+    omega = np.zeros(npart, dtype=my_float)
 
 
     for l in range(npart):
         # compute normalisation omega for all particles
-        # needs psi_k_at_l to be computed already
-        omega[l] =  np.sum(psi_k_at_l[:, l])
-        # omega_k = sum_l W(x_k - x_l) = sum_l psi_l(x_k) as it is currently stored in memory
+        omega[l] =  np.sum(psi_k_at_l[l, neighbours[l]]) + psi_k_at_l[l, l]
+        # omega_k = sum_l W(x_k - x_l, h_k) = sum_l psi_l(x_k) as it is currently stored in memory
 
     grad_psi_k_at_l = get_grad_psi_k_at_l_analytical(x, y, h, omega, psi_k_at_l, neighbours,
-            kernel=kernel, fact=fact)
+            kernel=kernel, fact=fact, L=L, periodic=periodic)
 
 
 
-    # normalize psi's and convert to float64 for linalg module
-    for k in range(npart):
-        psi_k_at_l[:, k] /= omega[k]
-    psi_k_at_l = np.float64(psi_k_at_l)
+    # normalize psi's and convert to float for linalg module
+    for l in range(npart):
+        psi_k_at_l[:, l] /= omega[l]
+    if my_float != np.float:
+        psi_k_at_l = psi_k_at_l.astype(np.float)
 
 
     maxn = max([len(n) for n in neighbours])
-    A_ij = np.zeros((npart, maxn, 2), dtype=np.float64)
+    A_ij = np.zeros((npart, maxn, 2), dtype=np.float)
      
 
+    # precompute all volumes
+    Vol = np.zeros((npart), dtype = np.float)
+    for i in range(nparts):
+        Vol[i] = 1/omega[i]
 
     # now compute A_ij for all neighbours j of i
     for i in range(npart):
 
         nbors = neighbours[i]
 
-        V_i = 1/omega[i]
+        V_i = Vol[i]
 
         for jind,j in enumerate(nbors): 
             
             grad_psi_i_xj = grad_psi_k_at_l[i, j]
             grad_psi_j_xi = grad_psi_k_at_l[j, i]
-            V_j = 1/omega[j]
+            V_j = Vol[j]
         
             A_ij[i, jind] = V_j * grad_psi_i_xj - V_i * grad_psi_j_xi
      
@@ -448,36 +470,39 @@ def Aij_Ivanova(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, perio
     # compute all psi_k(x_l) for all l, k
     # first index: index k of psi: psi_k(x)
     # second index: index of x_l: psi(x_l)
-    psi_k_at_l = np.zeros((npart, npart), dtype=np.float128)
+    psi_k_at_l = np.zeros((npart, npart), dtype=my_float)
 
     for k in range(npart):
         for l in neighbours[k]:
             # kernels are symmetric in x_i, x_j, but h can vary!!!!
             psi_k_at_l[k,l] = psi(x[l], y[l], x[k], y[k], h[l], kernel=kernel, fact=fact, L=L, periodic=periodic)
 
+        # self contribution part: k = l +> h[k] = h[l], so use h[k] here
+        psi_k_at_l[k, k] = psi(0, 0, 0, 0, h[k], kernel=kernel, fact=fact, L=L, periodic=periodic) 
 
-    omega = np.zeros(npart, dtype=np.float128)
+
+    omega = np.zeros(npart, dtype=my_float)
 
 
     for l in range(npart):
         # compute normalisation omega for all particles
-        # needs psi_k_at_l to be computed already
-        omega[l] =  np.sum(psi_k_at_l[:, l])
+        omega[l] =  np.sum(psi_k_at_l[neighbours[l], l]) + psi_k_at_l[l, l]
         # omega_k = sum_l W(x_k - x_l) = sum_l psi_l(x_k) as it is currently stored in memory
 
     grad_psi_k_at_l = get_grad_psi_k_at_l_analytical(x, y, h, omega, psi_k_at_l, neighbours,
-            kernel=kernel, fact=fact)
+            kernel=kernel, fact=fact, periodic=periodic)
 
 
-    # normalize psi's and convert to float64 for linalg module
-    for k in range(npart):
-        psi_k_at_l[:, k] /= omega[k]
-    psi_k_at_l = np.float64(psi_k_at_l)
+    # normalize psi's and convert to float for linalg module
+    for l in range(npart):
+        psi_k_at_l[:, l] /= omega[l]
+    if my_float != np.float:
+        psi_k_at_l = psi_k_at_l.astype(np.float)
 
     # now compute A_ij for all neighbours j of i
     nbors = neighbours[pind]
 
-    A_ij = np.zeros((len(nbors), 2), dtype=np.float64)
+    A_ij = np.zeros((len(nbors), 2), dtype=np.float)
 
     V_i = 1/omega[pind]
 
@@ -522,6 +547,7 @@ def Aij_Ivanova_analytical_gradients(pind, x, y, h, m, rho, kernel='cubic_spline
         A_ij: array of A_ij, containing x and y component for every neighbour j of particle i
     """
 
+    print("Warning: This method hasn't been checked thoroughly in a while. Results might not be right.")
 
     npart = x.shape[0]
 
@@ -534,21 +560,24 @@ def Aij_Ivanova_analytical_gradients(pind, x, y, h, m, rho, kernel='cubic_spline
     # compute all psi_k(x_l) for all l, k
     # first index: index k of psi: psi_k(x)
     # second index: index of x_l: psi(x_l)
-    psi_k_at_l = np.zeros((npart, npart), dtype=np.float128)
+    psi_k_at_l = np.zeros((npart, npart), dtype=my_float)
 
     for k in range(npart):
         for l in neighbours[k]:
             # kernels are symmetric in x_i, x_j, but h can vary!!!!
             psi_k_at_l[k,l] = psi(x[l], y[l], x[k], y[k], h[l], kernel=kernel, fact=fact, L=L, periodic=periodic)
 
+        # self contribution part: k = l +> h[k] = h[l], so use h[k] here
+        psi_k_at_l[k, k] = psi(0, 0, 0, 0, h[k], kernel=kernel, fact=fact, L=L, periodic=periodic) 
 
-    omega = np.zeros(npart, dtype=np.float128)
+
+    omega = np.zeros(npart, dtype=my_float)
 
 
     for l in range(npart):
         # compute normalisation omega for all particles
         # needs psi_k_at_l to be computed already
-        omega[l] =  np.sum(psi_k_at_l[:, l])
+        omega[l] =  np.sum(psi_k_at_l[neighbours[l], l]) + psi_k_at_l[l, l]
         # omega_k = sum_l W(x_k - x_l) = sum_l psi_l(x_k) as it is currently stored in memory
 
 
@@ -557,20 +586,21 @@ def Aij_Ivanova_analytical_gradients(pind, x, y, h, m, rho, kernel='cubic_spline
 
 
 
-    # normalize psi's and convert to float64 for linalg module
+    # normalize psi's and convert to float for linalg module
     for k in range(npart):
         psi_k_at_l[:, k] /= omega[k]
-    psi_k_at_l = np.float64(psi_k_at_l)
+    if my_float != np.float:
+        psi_k_at_l = psi_k_at_l.astype(np.float)
 
 
     # now compute A_ij for all neighbours j of i
     nbors = neighbours[pind]
 
-    A_ij = np.zeros((len(nbors), 2), dtype=np.float64)
+    A_ij = np.zeros((len(nbors), 2), dtype=np.float)
 
     for i,j in enumerate(nbors): 
         
-        A = np.array([0.0,0.0], dtype=np.float64)
+        A = np.array([0.0,0.0], dtype=np.float)
         for k in range(npart):
         #  for
             psi_i_xk = psi_k_at_l[pind, k]
@@ -632,6 +662,8 @@ def Integrand_Aij_Ivanova(iind, jind, xx, yy, hh, x, y, h, m, rho, kernel='cubic
 
     """
 
+    print("Warning: This method hasn't been checked thoroughly in a while. Results might not be right.")
+
     nbors = find_neighbours_arbitrary_x(xx, yy, x, y, h, fact=fact, L=L, periodic=periodic)
 
     xk = x[nbors]
@@ -650,7 +682,8 @@ def Integrand_Aij_Ivanova(iind, jind, xx, yy, hh, x, y, h, m, rho, kernel='cubic
     # normalize psis
     omega = np.sum(psi_x)
     psi_x /= omega
-    psi_x = np.float64(psi_x)
+    if my_float != np.float:
+        psi_x = psi_x.astype(np.float)
 
     # find where psi_i and psi_j are in that array
     try:
@@ -795,29 +828,34 @@ def get_grad_psi_k_at_l_analytical(x, y, h, omega, psi_k_at_l, neighbours, kerne
 
     npart = x.shape[0]
 
-    grad_psi_k_at_l = np.zeros((npart, npart, 2), dtype=np.float128)
-    grad_W_k_at_l = np.zeros((npart, npart, 2), dtype=np.float128)
+    grad_psi_k_at_l = np.zeros((npart, npart, 2), dtype=my_float)
+    grad_W_k_at_l = np.zeros((npart, npart, 2), dtype=my_float)
 
 
     for k in range(npart):
+        #  for l in range(npart):
         for l in neighbours[k]:
             # get kernel gradients
 
             dx, dy = get_dx(x[l], x[k], y[l], y[k], L=L, periodic=periodic)
 
             r = np.sqrt(dx**2 + dy**2)
-            if r == 0:
-                grad_W_k_at_l[k, l, 0] = 0
-                grad_W_k_at_l[k, l, 1] = 0
-            else:
-                grad_W_k_at_l[k, l, 0] = dWdr(r/h[l], h[l], kernel) * dx / r
-                grad_W_k_at_l[k, l, 1] = dWdr(r/h[l], h[l], kernel) * dy / r
+            if r != 0:
+                # d/dx W_j (x_i) = dWdr(r/h_i) * (x_i - x_j) / r
+                dwdr = dWdr(r/h[l], h[l], kernel)
+                grad_W_k_at_l[k, l, 0] = dwdr * dx / r
+                grad_W_k_at_l[k, l, 1] = dwdr * dy / r
+            #  else:
+            #      # It's initiated as zeroes anyhow
+            #      grad_W_k_at_l[k, l, 0] = 0
+            #      grad_W_k_at_l[k, l, 1] = 0
 
 
 
-    sum_grad_W = np.zeros((npart, 2), dtype=np.float128)
+    sum_grad_W = np.zeros((npart, 2), dtype=my_float)
 
     for l in range(npart):
+        # you can skip the self contribution here, the gradient at r = 0 is 0
         sum_grad_W[l] = np.sum(grad_W_k_at_l[neighbours[l], l], axis=0)
 
 
@@ -862,7 +900,7 @@ def compute_psi(xi, yi, xj, yj, h, kernel='cubic_spline', fact=1, L=1, periodic=
     return numpy array of psi_j(x) 
     """
 
-    psi_j = np.zeros(xj.shape[0], dtype=np.float128)
+    psi_j = np.zeros(xj.shape[0], dtype=my_float)
 
     if isinstance(h, np.ndarray):
         for i in range(xj.shape[0]):
@@ -897,14 +935,14 @@ def psi(x, y, xi, yi, h, kernel='cubic_spline', fact=1, L=1, periodic=True):
     L:          boxsize
     periodic:   Whether you assume periodic boundary conditions
 
-    !!!! returns type np.float128! 
+    !!!! returns type my_float! 
     Needed to prevent precision errors for normalisation
     """
 
 
     dx, dy = get_dx(x, xi, y, yi, L=L, periodic=periodic)
 
-    q = np.float128(np.sqrt(dx**2 + dy**2)/(fact*h))
+    q = my_float(np.sqrt(dx**2 + dy**2)/(fact*h))
 
     return W(q, h, kernel)
 

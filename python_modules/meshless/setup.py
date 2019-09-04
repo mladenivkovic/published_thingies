@@ -2,8 +2,8 @@ from setuptools import setup
 #  from distutils.core import setup
 
 setup(
-        name='Meshless Effective Surfaces',
-        version='0.1.3',
+        name='astro-meshless-surfaces',
+        version='0.1.7',
         author='Mladen Ivkovic',
         author_email='mladen.ivkovic@hotmail.com',
         packages=['meshless'],

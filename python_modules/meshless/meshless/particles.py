@@ -69,7 +69,6 @@ def find_neighbours(ind, x, y, h, fact=1, L=1, periodic=True):
 
     returns list of neighbour indices in x,y,h array
     """
-
     
 
     # None for Gaussian
@@ -85,24 +84,10 @@ def find_neighbours(ind, x, y, h, fact=1, L=1, periodic=True):
             if i==ind:
                 continue
 
-            dx = x[i] - x0
-            dy = y[i] - y0
-
-            if periodic:
-
-                Lhalf = 0.5*L
-
-                if dx > Lhalf:
-                    dx -= L
-                if dx < -Lhalf:
-                    dx += L
-
-                if dy > Lhalf:
-                    dy -= L
-                if dy < -Lhalf:
-                    dy += L
+            dx, dy = get_dx(x0, x[i], y0, y[i], L=L, periodic=periodic)
 
             dist = dx**2 + dy**2 
+
             if dist < fhsq:
                 neigh[j] = i
                 j+=1
@@ -145,22 +130,7 @@ def find_neighbours_arbitrary_x(x0, y0, x, y, h, fact=1, L=1, periodic=True):
 
             for i in range(x.shape[0]):
 
-                dx = x[i] - x0
-                dy = y[i] - y0
-
-                if periodic:
-
-                    Lhalf = 0.5*L
-
-                    if dx > Lhalf:
-                        dx -= L
-                    if dx < -Lhalf:
-                        dx += L
-
-                    if dy > Lhalf:
-                        dy -= L
-                    if dy < -Lhalf:
-                        dy += L
+                dx, dy = get_dx(x0, x[i], y0, y[i], L=L, periodic=periodic)
 
                 dist = dx**2 + dy**2
 
@@ -173,22 +143,7 @@ def find_neighbours_arbitrary_x(x0, y0, x, y, h, fact=1, L=1, periodic=True):
             fhsq = fact*fact*h*h
             for i in range(x.shape[0]):
 
-                dx = x[i] - x0
-                dy = y[i] - y0
-
-                if periodic:
-
-                    Lhalf = 0.5*L
-
-                    if dx > Lhalf:
-                        dx -= L
-                    if dx < -Lhalf:
-                        dx += L
-
-                    if dy > Lhalf:
-                        dy -= L
-                    if dy < -Lhalf:
-                        dy += L
+                dx, dy = get_dx(x0, x[i], y0, y[i], L=L, periodic=periodic)
 
                 dist = dx**2 + dy**2
 
@@ -270,8 +225,6 @@ def get_dx(x1, x2, y1, y2, L=1, periodic=True):
     periodic:   whether to assume periodic boundaries
     """
 
-    #  dx = x - xi
-    #  dy = y - yi
     dx = x1 - x2
     dy = y1 - y2
 

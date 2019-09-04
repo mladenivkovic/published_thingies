@@ -64,7 +64,7 @@ def get_sample_size(prefix=None):
     """
     Count how many files we're dealing with
     Assumes snapshots start with "snapshot-" string and contain
-    two numbers: snashot-XXX-YYY_ZZZZ.hdf5, where both XXX and YYY
+    two numbers: snapshot-XXX-YYY_ZZZZ.hdf5, where both XXX and YYY
     are integers, have the same minimal, maximal value and same
     difference between two consecutive numbers.
 
@@ -112,3 +112,29 @@ def get_sample_size(prefix=None):
 
 
 
+#==============================
+def snapstr(number):
+#==============================
+    """
+    return formatted string for snapshot number
+    (4 digit, zero padded string). Can take both
+    strings and integers as argument.
+    """
+
+    if hasattr(number, '__len__') and (not isinstance(number, str)):
+        print("You've given me a list for a snapshot number? I'm going to try element 0:", number[0])
+        number = number[0]
+
+    errormsg = "'"+str(number)+"' is not an integer."
+
+    if isinstance(number, float):
+        raise ValueError(errormsg)
+    import numpy as np
+
+    try:
+        n = int(number)
+    except ValueError:
+        raise ValueError(errormsg)
+    return '{0:04d}'.format(n)
+
+    

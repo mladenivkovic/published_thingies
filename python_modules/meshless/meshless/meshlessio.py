@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 
-#======================
-# Contains IO routines
-#======================
+###########################################################################################
+#  package:   astro-meshless-surfaces
+#  file:      meshlessio.py
+#  brief:     contains IO routines
+#  copyright: GPLv3
+#             Copyright (C) 2019 EPFL (Ecole Polytechnique Federale de Lausanne)
+#             LASTRO - Laboratory of Astrophysics of EPFL
+#  author:    Mladen Ivkovic <mladen.ivkovic@epfl.ch>
+#
+# This file is part of astro-meshless-surfaces.
+###########################################################################################
 
 
 

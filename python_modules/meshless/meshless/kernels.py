@@ -1,21 +1,33 @@
 #!/usr/bin/env python3
 
-#=============================
-# Contains kernels
-#=============================
+###########################################################################################
+#  package:   astro-meshless-surfaces
+#  file:      kernels.py
+#  brief:     contains kernel related stuff
+#  copyright: GPLv3
+#             Copyright (C) 2019 EPFL (Ecole Polytechnique Federale de Lausanne)
+#             LASTRO - Laboratory of Astrophysics of EPFL
+#  author:    Mladen Ivkovic <mladen.ivkovic@epfl.ch>
+#
+# This file is part of astro-meshless-surfaces.
+###########################################################################################
 
 import numpy as np
 
 
 # Names of all available kernels
-kernels = [ 'cubic_spline', 'quartic_spline',   'quintic_spline', 
-            'wendland_C2',  'wendland_C4',      'wendland_C6']
-kernel_derivatives = [ 'cubic_spline', 'quartic_spline',   'quintic_spline', 
-            'wendland_C2',  'wendland_C4',      'wendland_C6']
+kernels =                   [ 'cubic_spline', 'quartic_spline',   'quintic_spline', 
+                              'wendland_C2',  'wendland_C4',      'wendland_C6']
 
-kernels_with_gaussian = [   'cubic_spline', 'quartic_spline',   'quintic_spline', 
-                            'wendland_C2',  'wendland_C4',      'wendland_C6',
-                            'gaussian']
+kernel_derivatives =        [ 'cubic_spline', 'quartic_spline',   'quintic_spline', 
+                              'wendland_C2',  'wendland_C4',      'wendland_C6']
+
+kernels_with_gaussian =     [ 'cubic_spline', 'quartic_spline',   'quintic_spline', 
+                              'wendland_C2',  'wendland_C4',      'wendland_C6',
+                              'gaussian']
+
+kernel_pretty_names =       [ 'cubic spline kernel', 'quartic spline kernel',   'quintic spline kernel', 
+                              'wendland C2 kernel',  'wendland C4 kernel',      'wendland C6 kernel']
 
 # factors of all kernels for which fact*H = 0
 kernelfacts = [ 1, 1, 1,

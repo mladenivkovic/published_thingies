@@ -156,10 +156,23 @@ def get_const():
 #============
 
 def gamma(v):
+    """
+    Lorentz factor
+    """
     import math
     return math.sqrt(1.0-v**2/c**2)
 
+def a(z):
+    """
+    Expansion factor for given redshift
+    """
+    return 1./(1 + z)
 
+def z(a):
+    """
+    Redshift for a given expansion factor
+    """
+    return 1./a - 1
 
 
 #===============================================================================

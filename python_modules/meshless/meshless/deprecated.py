@@ -58,7 +58,7 @@ def Aij_Ivanova_approximate_gradients(pind, x, y, h, m, rho, kernel='cubic_splin
             psi_k_at_l[k,l] = psi(x[l], y[l], x[k], y[k], h[l], kernel=kernel, fact=fact, L=L, periodic=periodic)
 
         # self contribution part: k = l +> h[k] = h[l], so use h[k] here
-        psi_k_at_l[k, k] = psi(0, 0, 0, 0, h[k], kernel=kernel, fact=fact, L=L, periodic=periodic) 
+        psi_k_at_l[k, k] = psi(0, 0, 0, 0, h[k], kernel=kernel, fact=fact, L=L, periodic=periodic)
 
 
 
@@ -105,10 +105,10 @@ def Aij_Ivanova_approximate_gradients(pind, x, y, h, m, rho, kernel='cubic_splin
 
     A_ij = np.zeros((len(nbors), 2), dtype=np.float)
 
-    for i,j in enumerate(nbors): 
-        
+    for i,j in enumerate(nbors):
+
         A = np.array([0.0,0.0])
-        for k in range(npart): 
+        for k in range(npart):
             psi_i_xk = psi_k_at_l[pind, k]
             psi_j_xk = psi_k_at_l[j, k]
             Vk = V(k, m, rho)
@@ -119,13 +119,13 @@ def Aij_Ivanova_approximate_gradients(pind, x, y, h, m, rho, kernel='cubic_splin
                 psi_tilde_l = psi_tilde_k_at_l[l, k]
 
                 temp += (psi_j_xk * psi_i_xl - psi_i_xk * psi_j_xl) * psi_tilde_l
-            
+
             temp *= Vk
             A += temp
-    
+
         A_ij[i] = A
 
- 
+
     # return -A_ij: You will actually use A_ji . F in the formula
     # for the hydrodynamics, not A_ij . F
     return -A_ij
@@ -142,7 +142,7 @@ def Aij_Ivanova_approximate_gradients(pind, x, y, h, m, rho, kernel='cubic_splin
 def Aij_Ivanova_analytical_gradients(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1, L=1, periodic=True):
 #==================================================================================================================
     """
-    Compute A_ij as defined by Ivanova 2013. Use analytical expressions for the 
+    Compute A_ij as defined by Ivanova 2013. Use analytical expressions for the
     gradient of the kernels instead of the matrix representation.
     Not the recommended way to do it, needs extra computation.
 
@@ -179,7 +179,7 @@ def Aij_Ivanova_analytical_gradients(pind, x, y, h, m, rho, kernel='cubic_spline
             psi_k_at_l[k,l] = psi(x[l], y[l], x[k], y[k], h[l], kernel=kernel, fact=fact, L=L, periodic=periodic)
 
         # self contribution part: k = l +> h[k] = h[l], so use h[k] here
-        psi_k_at_l[k, k] = psi(0, 0, 0, 0, h[k], kernel=kernel, fact=fact, L=L, periodic=periodic) 
+        psi_k_at_l[k, k] = psi(0, 0, 0, 0, h[k], kernel=kernel, fact=fact, L=L, periodic=periodic)
 
 
     omega = np.zeros(npart, dtype=my_float)
@@ -192,7 +192,7 @@ def Aij_Ivanova_analytical_gradients(pind, x, y, h, m, rho, kernel='cubic_spline
         # omega_k = sum_l W(x_k - x_l) = sum_l psi_l(x_k) as it is currently stored in memory
 
 
-    grad_psi_k_at_l = get_grad_psi_j_at_i_analytical(x, y, h, omega, psi_k_at_l, neighbours, 
+    grad_psi_k_at_l = get_grad_psi_j_at_i_analytical(x, y, h, omega, psi_k_at_l, neighbours,
             kernel=kernel, fact=fact)
 
 
@@ -209,8 +209,8 @@ def Aij_Ivanova_analytical_gradients(pind, x, y, h, m, rho, kernel='cubic_spline
 
     A_ij = np.zeros((len(nbors), 2), dtype=np.float)
 
-    for i,j in enumerate(nbors): 
-        
+    for i,j in enumerate(nbors):
+
         A = np.array([0.0,0.0], dtype=np.float)
         for k in range(npart):
         #  for
@@ -221,10 +221,10 @@ def Aij_Ivanova_analytical_gradients(pind, x, y, h, m, rho, kernel='cubic_spline
             V_k = 1/omega[k]
 
             A += (psi_j_xk * grad_psi_i_xk - psi_i_xk*grad_psi_j_xk)*V_k
-    
+
         A_ij[i] = A
 
- 
+
     # return -A_ij: You will actually use A_ji . F in the formula
     # for the hydrodynamics, not A_ij . F
     return -A_ij
@@ -251,7 +251,7 @@ def Integrand_Aij_Ivanova(iind, jind, xx, yy, hh, x, y, h, m, rho, kernel='cubic
     integrand A_ij  = psi_j(x) \nabla psi_i(x) - psi_i (x) \nabla psi_j(x)
                     = sum_k [ psi_j(x_k) psi_i(x) - psi_i(x_k) psi_j(x) ] * psi_tilde_k(x)
                     = psi_i(x) * sum_k psi_j(x_k) * psi_tilde_k(x) - psi_j(x) * sum_k psi_i(x_k) * psi_tilde_k(x)
-    
+
     The last line is what is actually computed here, with the expression for the gradient
     inserted.
 
@@ -268,7 +268,7 @@ def Integrand_Aij_Ivanova(iind, jind, xx, yy, hh, x, y, h, m, rho, kernel='cubic
 
     returns:
         A_ij: array of integrands A_ij, containing x and y component for every neighbour j of particle i
-  
+
 
 
     """
@@ -323,7 +323,7 @@ def Integrand_Aij_Ivanova(iind, jind, xx, yy, hh, x, y, h, m, rho, kernel='cubic
 
 
     omegas = [0, 0]
-    
+
     for i, n in enumerate([iind, jind]):
         # first compute all psi(xl) from neighbour's neighbours to get weights omega
         nneigh = find_neighbours(n, x, y, h, fact=fact, L=L, periodic=periodic)
@@ -370,8 +370,8 @@ def Integrand_Aij_Ivanova(iind, jind, xx, yy, hh, x, y, h, m, rho, kernel='cubic
     sum_j = np.sum(np.multiply(psi_tilde_k, psi_j_xk ), axis=1)
 
 
-    A_ij = psi_i_of_x * sum_j - psi_j_of_x * sum_i 
-    
+    A_ij = psi_i_of_x * sum_j - psi_j_of_x * sum_i
+
     return A_ij
 
 

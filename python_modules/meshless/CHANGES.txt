@@ -1,3 +1,4 @@
+v0.1.10 06.11.2019 -- bugfix in Aij_Ivanova_all. Removed whitespaces.
 v0.1.9 07.10.2019 -- bugfixing and cleanup; removed integrand example. Added lincence headers, cleanup with pycharm, h5py dependency. Added 'deprecated.py'
 v0.1.8 04.09.2019 -- index renaming Ivanova, added snapstr, bugfixing
 v0.1.7 03.09.2019 -- double-checking of indices chaos

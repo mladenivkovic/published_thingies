@@ -83,7 +83,7 @@ def find_neighbours(ind, x, y, h, fact=1.0, L=1.0, periodic=True):
 
     returns list of neighbour indices in x,y,h array
     """
-    
+
 
     # None for Gaussian
     if fact is not None:
@@ -100,7 +100,7 @@ def find_neighbours(ind, x, y, h, fact=1.0, L=1.0, periodic=True):
 
             dx, dy = get_dx(x0, x[i], y0, y[i], L=L, periodic=periodic)
 
-            dist = dx**2 + dy**2 
+            dist = dx**2 + dy**2
 
             if dist < fhsq:
                 neigh[j] = i
@@ -109,7 +109,7 @@ def find_neighbours(ind, x, y, h, fact=1.0, L=1.0, periodic=True):
         return neigh[:j]
 
     else:
-        neigh = [i for i in range(x.shape[0])] 
+        neigh = [i for i in range(x.shape[0])]
         neigh.remove(ind)
         return neigh
 
@@ -172,7 +172,7 @@ def find_neighbours_arbitrary_x(x0, y0, x, y, h, fact=1.0, L=1.0, periodic=True)
         return neigh[:j]
 
     else:
-        neigh = [i for i in range(x.shape[0])] 
+        neigh = [i for i in range(x.shape[0])]
         return neigh
 
 
@@ -289,7 +289,7 @@ def get_neighbour_data_for_all(x, y, h, fact=1.0, L=1.0, periodic=True):
         self.iinds:         iinds[i, j] = which index does particle i have in the neighbour
                             list of particle j, where j is the j-th neighbour of i
                             Due to different smoothing lengths, particle j can be the
-                            neighbour of i, but i not the neighbour of j. 
+                            neighbour of i, but i not the neighbour of j.
                             In that case, the particles will be assigned indices j > nneigh[i]
 
     """
@@ -308,14 +308,14 @@ def get_neighbour_data_for_all(x, y, h, fact=1.0, L=1.0, periodic=True):
     for i in range(npart):
         nneigh[i] = len(neighbours[i])
 
-    
+
     # max number of neighbours; needed for array allocation
     maxneigh = nneigh.max()
 
 
     # store the index of particle i when required as the neighbour of particle j in arrays[npart, maxneigh]
     # i.e. find index 0 <= i < maxneigh for ever j
-    iinds = np.zeros((npart, 2*maxneigh), dtype=np.int) 
+    iinds = np.zeros((npart, 2*maxneigh), dtype=np.int)
     current_count = nneigh[:]
 
     for i in range(npart):
@@ -352,7 +352,7 @@ def get_neighbour_data_for_all(x, y, h, fact=1.0, L=1.0, periodic=True):
     nd = neighbour_data(neighbours=neighbours,
                         maxneigh=maxneigh,
                         nneigh=nneigh,
-                        iinds=iinds) 
+                        iinds=iinds)
 
 
     return nd

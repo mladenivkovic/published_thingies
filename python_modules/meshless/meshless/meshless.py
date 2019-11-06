@@ -40,7 +40,7 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1.0, L=1.0, p
 #===========================================================================================
     """
     Compute A_ij as defined by Hopkins 2015
-    pind:           particle index for which to work with. (The i in A_ij) 
+    pind:           particle index for which to work with. (The i in A_ij)
     x, y, m, rho:   full data arrays as read in from hdf5 file
     h:              kernel support radius array
     kernel:         which kernel to use
@@ -102,7 +102,7 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1.0, L=1.0, p
             psi_k = compute_psi(x[n], y[n], xk, yk, h[n], kernel, fact=fact, L=L, periodic=periodic)
             if nn == pind: # store psi_i, which is the psi for the particle whe chose at position xj; psi_i(xj)
                 psi_i[i] = psi_k[j]
-    
+
         omega_xj = (np.sum(psi_k) + psi(0,0,0,0,h[nn],kernel))
 
         psi_i[i]/= omega_xj
@@ -119,12 +119,12 @@ def Aij_Hopkins(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1.0, L=1.0, p
 
 
     #-------------------------------
-    # Part 3: Compute A_ij    
+    # Part 3: Compute A_ij
     #-------------------------------
 
     A_ij = np.empty((len(nbors),2), dtype = np.float)
 
-    
+
 
     for i,n in enumerate(nbors):
         A_ij[i] = V(pind, m, rho)*psi_tilde_j[i] - V(n, m, rho)*psi_tilde_i[i]
@@ -207,18 +207,18 @@ def Aij_Hopkins_v2(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1.0, L=1.0
             dx = np.array([x[k]-x[l], y[k]-y[l]])
             psi_tilde_k_at_l[k,l] = np.dot(B_k[l], dx) * psi_k_at_l[k,l]
 
- 
+
 
     # now compute A_ij for all neighbours j of i
     nbors = neighbours[pind]
 
     A_ij = np.zeros((len(nbors), 2), dtype=np.float)
 
-    for i,j in enumerate(nbors): 
+    for i,j in enumerate(nbors):
 
         A_ij[i] = V(pind, m, rho) * psi_tilde_k_at_l[j, pind] - V(j, m, rho) * psi_tilde_k_at_l[pind, j]
 
- 
+
     return A_ij
 
 
@@ -237,8 +237,8 @@ def Aij_Hopkins_v2(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1.0, L=1.0
 def Aij_Ivanova_all(x, y, h, m, rho, kernel='cubic_spline', fact=1.0, L=1.0, periodic=True):
 #==================================================================================================
     """
-    Compute A_ij as defined by Ivanova 2013, using the discretization by Taylor 
-    expansion as Hopkins does it. Use analytical expressions for the 
+    Compute A_ij as defined by Ivanova 2013, using the discretization by Taylor
+    expansion as Hopkins does it. Use analytical expressions for the
     gradient of the kernels instead of the matrix representation.
     This function computes the effective surfaces of all particles for all their
     respective neighbours.
@@ -275,7 +275,7 @@ def Aij_Ivanova_all(x, y, h, m, rho, kernel='cubic_spline', fact=1.0, L=1.0, per
     for j in range(npart):
         for i, ind_n in enumerate(neighbours[j]):
             # kernels are symmetric in x_i, x_j, but h can vary!!!!
-            psi_j_at_i[j, i] = psi(x[ind_n], y[ind_n], x[j], y[j], h[ind_n], 
+            psi_j_at_i[j, i] = psi(x[ind_n], y[ind_n], x[j], y[j], h[ind_n],
                                     kernel=kernel, fact=fact, L=L, periodic=periodic)
             omega[ind_n] += psi_j_at_i[j, i]
 
@@ -285,7 +285,7 @@ def Aij_Ivanova_all(x, y, h, m, rho, kernel='cubic_spline', fact=1.0, L=1.0, per
 
 
     # get gradients
-    grad_psi_j_at_i = get_grad_psi_j_at_i_analytical(x, y, h, omega, psi_j_at_i, neighbour_data, 
+    grad_psi_j_at_i = get_grad_psi_j_at_i_analytical(x, y, h, omega, psi_j_at_i, neighbour_data,
             kernel=kernel, fact=fact, periodic=periodic)
 
     del psi_j_at_i
@@ -293,7 +293,7 @@ def Aij_Ivanova_all(x, y, h, m, rho, kernel='cubic_spline', fact=1.0, L=1.0, per
 
     maxn = max([len(n) for n in neighbours])
     A_ij = np.zeros((npart, maxn, 2), dtype=np.float)
-     
+
 
     # precompute all volumes
     Vol = np.zeros((npart), dtype = np.float)
@@ -307,19 +307,17 @@ def Aij_Ivanova_all(x, y, h, m, rho, kernel='cubic_spline', fact=1.0, L=1.0, per
 
         V_i = Vol[i]
 
-        for j, nj in enumerate(nbors): 
-            
+        for j, nj in enumerate(nbors):
+
             grad_psi_i_xj = grad_psi_j_at_i[i, j]
-            iind = iinds[i, j] 
+            iind = iinds[i, j]
             grad_psi_j_xi = grad_psi_j_at_i[nj, iind]
 
-            V_j = Vol[j]
-    
-            A_ij[i, j] = V_j * grad_psi_i_xj - V_i * grad_psi_j_xi
-     
-    # return -A_ij: You will actually use A_ji . F in the formula
-    # for the hydrodynamics, not A_ij . F
-    return -A_ij, neighbours
+            V_j = Vol[nj]
+
+            A_ij[i, j] = V_i * grad_psi_j_xi - V_j * grad_psi_i_xj
+
+    return A_ij, neighbours
 
 
 
@@ -335,8 +333,8 @@ def Aij_Ivanova_all(x, y, h, m, rho, kernel='cubic_spline', fact=1.0, L=1.0, per
 def Aij_Ivanova(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1.0, L=1.0, periodic=True):
 #==================================================================================================
     """
-    Compute A_ij as defined by Ivanova 2013, using the discretization by Taylor 
-    expansion as Hopkins does it. Use analytical expressions for the 
+    Compute A_ij as defined by Ivanova 2013, using the discretization by Taylor
+    expansion as Hopkins does it. Use analytical expressions for the
     gradient of the kernels instead of the matrix representation.
 
     pind:           particle index for which to work for (The i in A_ij)
@@ -372,7 +370,7 @@ def Aij_Ivanova(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1.0, L=1.0, p
     for j in range(npart):
         for i, ind_n in enumerate(neighbours[j]):
             # kernels are symmetric in x_i, x_j, but h can vary!!!!
-            psi_j_at_i[j, i] = psi(x[ind_n], y[ind_n], x[j], y[j], h[ind_n], 
+            psi_j_at_i[j, i] = psi(x[ind_n], y[ind_n], x[j], y[j], h[ind_n],
                                     kernel=kernel, fact=fact, L=L, periodic=periodic)
             omega[ind_n] += psi_j_at_i[j, i]
 
@@ -382,7 +380,7 @@ def Aij_Ivanova(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1.0, L=1.0, p
 
 
     # get gradients
-    grad_psi_j_at_i = get_grad_psi_j_at_i_analytical(x, y, h, omega, psi_j_at_i, neighbour_data, 
+    grad_psi_j_at_i = get_grad_psi_j_at_i_analytical(x, y, h, omega, psi_j_at_i, neighbour_data,
             kernel=kernel, fact=fact, periodic=periodic)
 
     del psi_j_at_i
@@ -394,16 +392,16 @@ def Aij_Ivanova(pind, x, y, h, m, rho, kernel='cubic_spline', fact=1.0, L=1.0, p
 
     V_i = 1/omega[pind]
 
-    for j, nj in enumerate(nbors): 
-        
+    for j, nj in enumerate(nbors):
+
         grad_psi_i_xj = grad_psi_j_at_i[pind, j]
-        iind = iinds[pind, j] 
+        iind = iinds[pind, j]
         grad_psi_j_xi = grad_psi_j_at_i[nj, iind]
 
         V_j = 1/omega[nj]
-    
+
         A_ij[j] = V_j * grad_psi_i_xj - V_i * grad_psi_j_xi
- 
+
     # return -A_ij: You will actually use A_ji . F in the formula
     # for the hydrodynamics, not A_ij . F
     return -A_ij
@@ -458,11 +456,11 @@ def x_ij(pind, x, y, h, nbors=None, which=None):
 
 
 #==========================================================================================
-def get_grad_psi_j_at_i_analytical(x, y, h, omega, psi_j_at_i, neighbour_data, 
+def get_grad_psi_j_at_i_analytical(x, y, h, omega, psi_j_at_i, neighbour_data,
     kernel='cubic_spline', fact=1.0, L=1.0, periodic=True):
 #==========================================================================================
     """
-    Compute \nabla \psi_k (x_l) for all particles k and l 
+    Compute \nabla \psi_k (x_l) for all particles k and l
     x, y, h:        arrays of positions and compact support radius of all particles
     omega:          weights; sum_j W(x - xj) for all particles x=x_k
     psi_j_at_i:     UNNORMED psi_k(x_l) npart x npart array for all k, l
@@ -548,7 +546,7 @@ def compute_psi(xi, yi, xj, yj, h, kernel='cubic_spline', fact=1.0, L=1.0, perio
     L:          boxsize
     periodic:   whether to assume periodic boundaries
 
-    return numpy array of psi_j(x) 
+    return numpy array of psi_j(x)
     """
 
     psi_j = np.zeros(xj.shape[0], dtype=my_float)
@@ -586,7 +584,7 @@ def psi(x, y, xi, yi, h, kernel='cubic_spline', fact=1.0, L=1.0, periodic=True):
     L:          boxsize
     periodic:   Whether you assume periodic boundary conditions
 
-    !!!! returns type my_float! 
+    !!!! returns type my_float!
     Needed to prevent precision errors for normalisation
     """
 
@@ -626,7 +624,7 @@ def get_matrix(xi, yi, xj, yj, psi_j, L=1, periodic=True):
     E00 = np.sum(dx * dx * psi_j)
     E01 = np.sum(dx * dy * psi_j)
     E11 = np.sum(dy * dy * psi_j)
-          
+
     E = np.matrix([[E00, E01], [E01, E11]])
 
     try:
@@ -650,7 +648,7 @@ def get_matrix(xi, yi, xj, yj, psi_j, L=1, periodic=True):
 def h_of_x(xx, yy, x, y, h, m, rho, kernel='cubic_spline', fact=1.0, L=1.0, periodic=True):
 #=============================================================================================
     """
-    Compute h(x) at position (xx, yy), where there is 
+    Compute h(x) at position (xx, yy), where there is
     not necessariliy a particle
     by approximating it as h(x) = sum_j h_j * psi_j(x)
 

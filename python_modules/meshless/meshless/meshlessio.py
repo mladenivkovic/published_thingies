@@ -24,7 +24,7 @@ def read_file(srcfile, ptype='PartType0', sort=False):
     sort:       whether to sort read in arrays by particle ID
 
     returns:
-    x, y, h, rho, m, ids: numpy arrays of x, y position, 
+    x, y, h, rho, m, ids: numpy arrays of x, y position,
         smoothing length, density, mass, particle ID
     npart: Number of particles
     """
@@ -103,7 +103,7 @@ def get_sample_size(prefix=None):
     s, dash, rest = first.partition("-")
     num, dash, junk = rest.partition("-")
     lowest = int(num)
-    
+
     finalsnap = snaplist[-1]
     s, dash, rest = finalsnap.partition("-")
     num, dash, junk = rest.partition("-")
@@ -116,7 +116,7 @@ def get_sample_size(prefix=None):
     filenummax = highest
     fileskip = int((highest - lowest)/(steps - 1))
 
-    return nx, filenummax, fileskip 
+    return nx, filenummax, fileskip
 
 
 
@@ -145,4 +145,4 @@ def snapstr(number):
         raise ValueError(errormsg)
     return '{0:04d}'.format(n)
 
-    
+

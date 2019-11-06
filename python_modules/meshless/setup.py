@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
         name='astro-meshless-surfaces',
-        version='0.1.9',
+        version='0.1.10',
         author='Mladen Ivkovic',
         author_email='mladen.ivkovic@hotmail.com',
         packages=['meshless'],

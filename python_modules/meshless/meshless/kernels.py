@@ -16,22 +16,22 @@ import numpy as np
 
 
 # Names of all available kernels
-kernels =                   [ 'cubic_spline', 'quartic_spline',   'quintic_spline', 
+kernels =                   [ 'cubic_spline', 'quartic_spline',   'quintic_spline',
                               'wendland_C2',  'wendland_C4',      'wendland_C6']
 
-kernel_derivatives =        [ 'cubic_spline', 'quartic_spline',   'quintic_spline', 
+kernel_derivatives =        [ 'cubic_spline', 'quartic_spline',   'quintic_spline',
                               'wendland_C2',  'wendland_C4',      'wendland_C6']
 
-kernels_with_gaussian =     [ 'cubic_spline', 'quartic_spline',   'quintic_spline', 
+kernels_with_gaussian =     [ 'cubic_spline', 'quartic_spline',   'quintic_spline',
                               'wendland_C2',  'wendland_C4',      'wendland_C6',
                               'gaussian']
 
-kernel_pretty_names =       [ 'cubic spline kernel', 'quartic spline kernel',   'quintic spline kernel', 
+kernel_pretty_names =       [ 'cubic spline kernel', 'quartic spline kernel',   'quintic spline kernel',
                               'wendland C2 kernel',  'wendland C4 kernel',      'wendland C6 kernel']
 
 # factors of all kernels for which fact*H = 0
 kernelfacts = [ 1, 1, 1,
-                1, 1, 1, 
+                1, 1, 1,
                 None]
 
 kernel_H_over_h = [1.778002, 1.977173, 2.158131,
@@ -60,19 +60,19 @@ def W(q, h, kernel='cubic_spline'):
     kernels are scaled such that W(q > 1) = 0
 
     Currently implemented:
-        cubic_spline, 
-        quintic_spline, 
-        wendland_C2, 
-        wendland_C4, 
+        cubic_spline,
+        quintic_spline,
+        wendland_C2,
+        wendland_C4,
         wendland_C6,
         gaussian (no compact support)
-    """ 
+    """
     #  https://pysph.readthedocs.io/en/latest/reference/kernels.html#liu2010
 
 
 
     #--------------------------------------
-    if kernel == 'cubic_spline': 
+    if kernel == 'cubic_spline':
     #--------------------------------------
         if q < 0.5:
             res =  3 * q**2 * (q - 1) + 0.5
@@ -81,7 +81,7 @@ def W(q, h, kernel='cubic_spline'):
             res = -q**3 + 3*q**2 -3*q + 1
         else:
             return 0
- 
+
         #  sigma = 80./(7*pi*h**2)
         sigma = 3.63782727067189/h**2
         return sigma*res
@@ -160,7 +160,7 @@ def W(q, h, kernel='cubic_spline'):
             qsq = q**2
             q4 = qsq**2
 
-            return sigma*( 11.666666666666666*q4*q4 - 64*q4*qsq*q  + 140 * qsq * q4 - 149.3333333333333 * q4 * q + 70*q4 - 9.33333333333333*qsq + 1  ) 
+            return sigma*( 11.666666666666666*q4*q4 - 64*q4*qsq*q  + 140 * qsq * q4 - 149.3333333333333 * q4 * q + 70*q4 - 9.33333333333333*qsq + 1  )
         else:
             return 0
 
@@ -171,7 +171,7 @@ def W(q, h, kernel='cubic_spline'):
     #-------------------------------------
     elif kernel == 'wendland_C6':
     #-------------------------------------
-        
+
         if q < 1:
             #  sigma = 78/(7*np.pi*h**2)
             sigma = 3.546881588905096/h**2
@@ -247,18 +247,18 @@ def dWdr(q, h, kernel='cubic_spline'):
     kernels are scaled such that W(q > 1) = 0
 
     Currently implemented:
-        cubic_spline, 
+        cubic_spline,
         quintic_spline,
         wendland_C2,
         wendland_C4,
         wendland_C6,
-    """ 
+    """
     #  https://pysph.readthedocs.io/en/latest/reference/kernels.html#liu2010
 
 
 
     #--------------------------------------
-    if kernel == 'cubic_spline': 
+    if kernel == 'cubic_spline':
     #--------------------------------------
         if q < 0.5:
             res =  9*q**2 - 6*q
@@ -266,7 +266,7 @@ def dWdr(q, h, kernel='cubic_spline'):
             res =  6*q - 3*q**2 - 3
         else:
             return 0
- 
+
         #  sigma = 80./(7*pi*h**2) * 1 / h
         sigma = 3.63782727067189/h**3
         return sigma*res
@@ -322,7 +322,7 @@ def dWdr(q, h, kernel='cubic_spline'):
         if q < 1:
             #  sigma = 7/(np.pi * h**2)
             sigma =2.228169203286535/h**3
-            return sigma * (20*q**4 - 60*q**3 + 60*q**2 - 20*q) 
+            return sigma * (20*q**4 - 60*q**3 + 60*q**2 - 20*q)
         else:
             return 0
 
@@ -349,7 +349,7 @@ def dWdr(q, h, kernel='cubic_spline'):
     #-------------------------------------
     elif kernel == 'wendland_C6':
     #-------------------------------------
-        
+
         if q < 1:
             #  sigma = 78/(7*np.pi*h**2)
             sigma = 3.546881588905096/h**3
@@ -376,7 +376,7 @@ def get_H(h, kernel='cubic_spline'):
     of a given kernel.
     The kernels defined above are defined and scaled to support a region <= H.
     """
-    
+
     fact = kernel_H_over_h_dict[kernel]
 
     H = fact * h

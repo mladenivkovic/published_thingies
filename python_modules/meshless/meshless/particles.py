@@ -294,6 +294,227 @@ def get_neighbour_data_for_all(x, y, h, fact=1.0, L=1.0, periodic=True):
 
     """
 
+    import copy
+
+    #-----------------------------------------------
+    class neighbour_data:
+    #-----------------------------------------------
+        def __init__(self, neighbours=None, maxneigh=None, nneigh=None, iinds=None):
+            self.neighbours = neighbours
+            self.maxneigh = maxneigh
+            self.nneigh = nneigh
+            self.iinds = iinds
+
+
+    #-----------------------------------------------
+    class cell:
+    #-----------------------------------------------
+        """
+        A cell object to store particles in.
+        Stores particle indexes
+        """
+
+        def __init__(self):
+           self.npart = 0
+           self.size = 100
+           self.parts = np.zeros(self.size, dtype=np.int)
+           return
+
+        def add_particle(self, ind):
+            """
+            Add a particle, store the index
+            """
+            if self.npart == self.size:
+                self.parts = np.append(self.parts, np.zeros(self.size, dtype=np.int))
+                self.size *= 2
+
+            self.parts[self.npart] = ind
+            self.npart += 1
+            
+            return
+
+
+    
+    #-----------------------------------------------
+    def find_neighbours_in_cell(i, j, p):
+    #-----------------------------------------------
+        """
+        Find neighbours of particles with index p in the cell
+        i, j of the grid
+        """
+        n = 0
+        neigh = [0 for i in range(1000)]
+    
+        np = grid[i][j].npart
+        parts = grid[i][j].parts
+        
+        xp = x[p]
+        yp = y[p]
+        hp = h[p]
+        fhsq = hp*hp*fact*fact
+
+        for cp in parts[:np]:
+            if cp == p:
+                continue
+
+            dx, dy = get_dx(xp, x[cp], yp, y[cp], L=L, periodic=periodic)
+
+            dist = dx**2 + dy**2
+
+            if dist <= fhsq:
+                neigh[n] = cp
+                n += 1
+
+        return neigh[:n]
+
+
+
+
+
+
+
+    npart = x.shape[0]
+
+    # first find cell size
+    cell_size = 2*h.max()
+    ncells = int(L/cell_size) + 1
+
+    # force at least 3x3 to skip identical cell checks when looping
+    # over neighbours
+    if ncells < 3:
+        ncells = 3
+        cell_size = L/3
+
+
+    # create grid
+    grid = [[cell() for i in range(ncells)] for j in range(ncells)]
+
+
+    # sort out particles
+    for p in range(npart):
+        i = int(x[p]/cell_size)
+        j = int(y[p]/cell_size)
+        grid[i][j].add_particle(p)
+
+
+
+
+    neighbours = [[] for i in x]
+    nneigh = np.zeros(npart, dtype=np.int)
+
+    # main loop: find and store all neighbours;
+    for p in range(npart):
+ 
+        self_i = int(x[p]/cell_size)
+        self_j = int(y[p]/cell_size)
+
+        nbors = find_neighbours_in_cell(self_i, self_j, p) 
+
+        upper_i = self_i + 1
+        if upper_i == ncells:
+            upper_i -= ncells
+        nbors += find_neighbours_in_cell(upper_i, self_j, p)
+
+        lower_i = self_i - 1
+        if lower_i == -1:
+            lower_i += ncells
+        nbors += find_neighbours_in_cell(lower_i, self_j, p)
+
+        right_j = self_j + 1
+        if right_j == ncells:
+            right_j -= ncells
+        nbors += find_neighbours_in_cell(self_i, right_j, p)
+
+        left_j = self_j - 1
+        if left_j == -1:
+            left_j += ncells
+        nbors += find_neighbours_in_cell(self_i, left_j, p)
+
+
+        nbors += find_neighbours_in_cell(upper_i, right_j, p)
+        nbors += find_neighbours_in_cell(upper_i, left_j, p)
+        nbors += find_neighbours_in_cell(lower_i, right_j, p)
+        nbors += find_neighbours_in_cell(lower_i, left_j, p)
+
+
+        neighbours[p] = sorted(nbors)
+        nneigh[p] = len(neighbours[p])
+
+
+
+
+
+    # max number of neighbours; needed for array allocation
+    maxneigh = nneigh.max()
+
+
+    # store the index of particle i when required as the neighbour of particle j in arrays[npart, maxneigh]
+    # i.e. find index 0 <= i < maxneigh for ever j
+    iinds = np.zeros((npart, 2*maxneigh), dtype=np.int)
+    current_count = copy.copy(nneigh)
+
+    for i in range(npart):
+        for jc,j in enumerate(neighbours[i]):
+
+            try:
+                iinds[i, jc] = (neighbours[j]).index(i)
+            except ValueError:
+                # it is possible that j is a neighbour for i, but i is not a neighbour
+                # for j depending on their respective smoothing lengths
+                dx, dy = get_dx(x[i], x[j], y[i], y[j], L=L, periodic=periodic)
+                r = np.sqrt(dx**2 + dy**2)
+                if r/h[j] < 1:
+                    print("something went wrong when computing gradients.")
+                    print("i=", i, "j=", j, "r=", r, "H=", h[j], "r/H=", r/h[j])
+                    print("neighbours i:", neighbours[i])
+                    print("neighbours j:", neighbours[j])
+                    print("couldn't find i as neighbour of j")
+                    print("exiting")
+                    quit()
+                else:
+                    # append after nneigh[j]
+                    iinds[i, jc] = current_count[j]
+                    current_count[j] += 1
+
+
+    nd = neighbour_data(neighbours=neighbours,
+                        maxneigh=maxneigh,
+                        nneigh=nneigh,
+                        iinds=iinds)
+
+
+    return nd
+
+
+
+
+
+
+
+#===============================================================================
+def get_neighbour_data_for_all_naive(x, y, h, fact=1.0, L=1.0, periodic=True):
+#===============================================================================
+    """
+    Gets all the neighbour data for all particles ready.
+    Naive way: Loop over all particles for each particle
+    x, y, h:    arrays of positions/h of all particles
+    fact:       kernel support radius factor: W = 0 for r > fact*h
+    L:          boxsize
+    periodic:   Whether you assume periodic boundary conditions
+
+    returns neighbour_data object:
+        self.neighbours :   List of lists of every neighbour of every particle
+        self.maxneigh :     Highest number of neighbours
+        self.nneigh:        integer array of number of neighbours for every particle
+        self.iinds:         iinds[i, j] = which index does particle i have in the neighbour
+                            list of particle j, where j is the j-th neighbour of i
+                            Due to different smoothing lengths, particle j can be the
+                            neighbour of i, but i not the neighbour of j.
+                            In that case, the particles will be assigned indices j > nneigh[i]
+
+    """
+    
+    import copy
 
     npart = x.shape[0]
 
@@ -316,7 +537,7 @@ def get_neighbour_data_for_all(x, y, h, fact=1.0, L=1.0, periodic=True):
     # store the index of particle i when required as the neighbour of particle j in arrays[npart, maxneigh]
     # i.e. find index 0 <= i < maxneigh for ever j
     iinds = np.zeros((npart, 2*maxneigh), dtype=np.int)
-    current_count = nneigh[:]
+    current_count = copy.copy(nneigh)
 
     for i in range(npart):
         for jc,j in enumerate(neighbours[i]):

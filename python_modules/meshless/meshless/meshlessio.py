@@ -146,3 +146,34 @@ def snapstr(number):
     return '{0:04d}'.format(n)
 
 
+
+#===========================================
+def read_boxsize(fnamestr='_0000.hdf5'):
+#===========================================
+    """
+    Looks for a swift hdf5 file that contains fnamestr and reads in
+    boxsize.
+
+    returns:
+        boxsize: [xdim, ydim, zdim] list, where xdim, ydim, zdim are floats
+    """
+
+    import os
+    import h5py
+
+    filelist = os.listdir()
+    for f in filelist:
+        if fnamestr in f:
+            # read in boxsize
+            f5 = h5py.File(f)
+            h = f5['Header']
+            boxsize = h.attrs['BoxSize']
+            print("read in boxsize from", f)
+            f5.close()
+            return boxsize
+
+
+    # if you're out and haven't found file, say it
+    print("Haven't found any file that contains", fnamestr)
+    print("quitting")
+    quit()

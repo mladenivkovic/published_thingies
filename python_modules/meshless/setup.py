@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
         name='astro-meshless-surfaces',
-        version='0.1.11',
+        version='0.1.14',
         author='Mladen Ivkovic',
         author_email='mladen.ivkovic@hotmail.com',
         packages=['meshless'],
@@ -14,8 +14,7 @@ setup(
                     "examples/check_volume.py",
                     "examples/check_versions.py",
                     "examples/check_kernels.py",
-                    "examples/check_directions.py",
-                    "examples/check_neighbours.py"
+                    "examples/check_directions.py"
                 ],
         long_description=open('README.rst').read(),
         install_requires=[
@@ -23,6 +22,4 @@ setup(
             'matplotlib',
             'h5py'
         ]
-     
-     
      )

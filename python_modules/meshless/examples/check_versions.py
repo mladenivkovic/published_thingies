@@ -3,7 +3,9 @@
 
 #===============================================================
 # Check by computing the effective surface a la Hopkins using
-# two different ways and pray that it gives identical results.
+# two different ways and pray that it gives identical results,
+# and two Ivanova versions (one computes Aij for all particles,
+# one for only one particle)
 #===============================================================
 
 
@@ -29,11 +31,11 @@ pcoords = [ [0.5, 0.5],
 print_by_particle = False           # whether to print differences for each particle separately
 
 
-fullcolorlist=['red', 
-        'green', 
-        'blue', 
-        'gold', 
-        'magenta', 
+fullcolorlist=['red',
+        'green',
+        'blue',
+        'gold',
+        'magenta',
         'cyan',
         'lime',
         'saddlebrown',
@@ -52,6 +54,7 @@ fullcolorlist=['red',
 
 ncolrs = len(fullcolorlist)
 
+arrwidth = 2
 
 
 
@@ -59,7 +62,7 @@ ncolrs = len(fullcolorlist)
 #========================
 def main():
 #========================
-    
+
 
     x, y, h, rho, m, ids, npart = ms.read_file(srcfile, ptype)
 
@@ -70,30 +73,62 @@ def main():
     nrows = len(pcoords)
     fig = plt.figure(figsize=(10, 5*nrows+0.5))
 
+    # compute full ivanova only once
+    Aij_Ivanova_v2_full, nbors_all = ms.Aij_Ivanova_all(x, y, H, m, rho)
 
 
     count = 0
     for row, pcoord in enumerate(pcoords):
-        
+
         print("Working for particle at", pcoord)
 
         pind = ms.find_index(x, y, pcoord, tolerance=0.05)
-        nbors = ms.find_neighbours(pind, x, y, H)
+        nbors = nbors_all[pind]
 
         print("Computing effective surfaces")
 
 
-        A_ij_Hopkins = ms.Aij_Hopkins(pind, x, y, H, m, rho)
-        A_ij_Hopkins_v2 = ms.Aij_Hopkins_v2(pind, x, y, H, m, rho)
+        Aij_Hopkins = ms.Aij_Hopkins(pind, x, y, H, m, rho)
+        Aij_Hopkins_v2 = ms.Aij_Hopkins_v2(pind, x, y, H, m, rho)
+        Aij_Ivanova = ms.Aij_Ivanova(pind, x, y, H, m, rho)
+        Aij_Ivanova_v2 = Aij_Ivanova_v2_full[pind][:len(nbors)]
 
         x_ij = ms.x_ij(pind, x, y, H, nbors=nbors)
 
 
+        #--------------------------------------------------------------------------------------------------------
+        print("Comparing Hopkins:")
+        print("Sum Hopkins:", np.sum(Aij_Hopkins, axis=0))
+        print("Sum Hopkins_v2:", np.sum(Aij_Hopkins_v2, axis=0))
+
+        print("Max difference x:", np.max((Aij_Hopkins[:,0] - Aij_Hopkins_v2[:,0])/Aij_Hopkins[:,0]))
+        print("Max difference y:", np.max((Aij_Hopkins[:,1] - Aij_Hopkins_v2[:,1])/Aij_Hopkins[:,1]))
+        abs1 = np.sqrt(Aij_Hopkins[:,0]**2 + Aij_Hopkins[:,1]**2)
+        abs2 = np.sqrt(Aij_Hopkins_v2[:,0]**2 + Aij_Hopkins_v2[:,1]**2)
+        print("Max difference norm:", np.max((abs1 - abs2)/abs1))
+        print()
+
+        print("Comparing Ivanova:")
+        print("Sum Ivanova:", np.sum(Aij_Ivanova, axis=0))
+        print("Sum Ivanova_v2:", np.sum(Aij_Ivanova_v2, axis=0))
+        print("Max difference x:", np.max((Aij_Ivanova[:,0] - Aij_Ivanova_v2[:,0])/Aij_Ivanova[:,0]))
+        print("Max difference y:", np.max((Aij_Ivanova[:,1] - Aij_Ivanova_v2[:,1])/Aij_Ivanova[:,1]))
+        abs1 = np.sqrt(Aij_Ivanova[:,0]**2 + Aij_Ivanova[:,1]**2)
+        abs2 = np.sqrt(Aij_Ivanova_v2[:,0]**2 + Aij_Ivanova_v2[:,1]**2)
+        print("Max difference norm:", np.max((abs1 - abs2)/abs1))
+        print("===================================================")
+        print()
+        #--------------------------------------------------------------------------------------------------------
+
+
+
         print("Plotting")
 
-        ax1 = fig.add_subplot(nrows, 2, count+1)
-        ax2 = fig.add_subplot(nrows, 2, count+2)
-        count +=2
+        ax1 = fig.add_subplot(nrows, 4, count+1)
+        ax2 = fig.add_subplot(nrows, 4, count+2)
+        ax3 = fig.add_subplot(nrows, 4, count+3)
+        ax4 = fig.add_subplot(nrows, 4, count+4)
+        count +=4
 
         pointsize = 100
         xmin = pcoord[0]-0.25
@@ -108,23 +143,15 @@ def main():
         for i, n in enumerate(nbors):
             dist[i] = (x[n]-pcoord[0])**2 + (y[n]-pcoord[1])**2
 
+
+
         args = np.argsort(dist)
 
-        print("Sum Hopkins:", np.sum(A_ij_Hopkins, axis=0)) 
-        print("Sum Hopkins_v2:", np.sum(A_ij_Hopkins_v2, axis=0)) 
+        axes = [ax1, ax2, ax3, ax4]
+        Aijs = [Aij_Hopkins, Aij_Hopkins_v2, Aij_Ivanova, Aij_Ivanova_v2]
+        titles = ['Aij_Hopkins', 'Aij_Hopkins_v2', 'Aij_Ivanova', 'Aij_Ivanova_v2']
 
-        print("Max difference x:", np.max((A_ij_Hopkins[:,0] - A_ij_Hopkins_v2[:,0])/A_ij_Hopkins[:,0]))
-        print("Max difference y:", np.max((A_ij_Hopkins[:,1] - A_ij_Hopkins_v2[:,1])/A_ij_Hopkins[:,1]))
-        abs1 = np.sqrt(A_ij_Hopkins[:,0]**2 + A_ij_Hopkins[:,1]**2)
-        abs2 = np.sqrt(A_ij_Hopkins_v2[:,0]**2 + A_ij_Hopkins_v2[:,1]**2)
-        print("Max difference norm:", np.max((abs1 - abs2)/abs1))
-        print("===================================================")
-        print("===================================================")
-        print("===================================================")
-
-        print()
-
-        for ax in [ax1, ax2]:
+        for ax, Aij, title in zip(axes, Aijs, titles):
             ax.set_facecolor('lavender')
             ax.scatter(x[pind], y[pind], c='k', s=pointsize*2)
             ax.set_xlim((xmin, xmax))
@@ -143,22 +170,21 @@ def main():
                     cc -= ncolrs
                 col = fullcolorlist[cc]
 
-                arrwidth = 2
 
-                if print_by_particle:
-                    print("Particle colour", col)
-                    print("Max difference x:", (A_ij_Hopkins[ii,0] - A_ij_Hopkins_v2[ii,0])/A_ij_Hopkins[ii,0])
-                    print("Max difference y:", (A_ij_Hopkins[ii,1] - A_ij_Hopkins_v2[ii,1])/A_ij_Hopkins[ii,1])
-                    print("x v1:", A_ij_Hopkins[ii,0], "v2:", A_ij_Hopkins_v2[ii, 0], A_ij_Hopkins[ii,0] - A_ij_Hopkins_v2[ii,0])
-                    print("y v1:", A_ij_Hopkins[ii,1], "v2:", A_ij_Hopkins_v2[ii, 1], A_ij_Hopkins[ii,1] - A_ij_Hopkins_v2[ii,1])
-                    abs1 = np.sqrt(A_ij_Hopkins[ii,0]**2 + A_ij_Hopkins[ii,1]**2)
-                    abs2 = np.sqrt(A_ij_Hopkins_v2[ii,0]**2 + A_ij_Hopkins_v2[ii,1]**2)
-                    print("Max difference norm:", (abs1 - abs2)/abs1)
-                    print()
+                #  if print_by_particle:
+                #      print("Particle colour", col)
+                #      print("Max difference x:", (Aij_Hopkins[ii,0] - Aij_Hopkins_v2[ii,0])/Aij_Hopkins[ii,0])
+                #      print("Max difference y:", (Aij_Hopkins[ii,1] - Aij_Hopkins_v2[ii,1])/Aij_Hopkins[ii,1])
+                #      print("x v1:", Aij_Hopkins[ii,0], "v2:", Aij_Hopkins_v2[ii, 0], Aij_Hopkins[ii,0] - Aij_Hopkins_v2[ii,0])
+                #      print("y v1:", Aij_Hopkins[ii,1], "v2:", Aij_Hopkins_v2[ii, 1], Aij_Hopkins[ii,1] - Aij_Hopkins_v2[ii,1])
+                #      abs1 = np.sqrt(Aij_Hopkins[ii,0]**2 + Aij_Hopkins[ii,1]**2)
+                #      abs2 = np.sqrt(Aij_Hopkins_v2[ii,0]**2 + Aij_Hopkins_v2[ii,1]**2)
+                #      print("Max difference norm:", (abs1 - abs2)/abs1)
+                #      print()
 
 
                 def extrapolate():
-                    
+
                     dx = x[pind] - x[n]
                     dy = y[pind] - y[n]
 
@@ -189,30 +215,12 @@ def main():
 
 
 
-        for i in range(len(nbors)):
 
-            ii = args[i]
-            n = nbors[ii]
+                ax.arrow(  x_ij[ii][0], x_ij[ii][1], Aij[ii][0], Aij[ii][1],
+                            color=col, lw=arrwidth, zorder=10+i)
 
-            cc = i
-            while cc > ncolrs-1:
-                cc -= ncolrs
-            col = fullcolorlist[cc]
+                ax.set_title(title+r' $\mathbf{A}_{ij}$', fontsize=12, pad=12)
 
-            arrwidth = 2
-
-            ax1.arrow(  x_ij[ii][0], x_ij[ii][1], A_ij_Hopkins[ii][0], A_ij_Hopkins[ii][1], 
-                        color=col, lw=arrwidth, zorder=10+i)
-
-            ax2.arrow(  x_ij[ii][0], x_ij[ii][1], A_ij_Hopkins_v2[ii][0], A_ij_Hopkins_v2[ii][1], 
-                        color=col, lw=arrwidth, zorder=10+i)
-
-
-
-
-        ax1.set_title(r'Hopkins $\mathbf{A}_{ij}$ at $\mathbf{x}_{ij} = \mathbf{x}_i + \frac{h_i}{h_i+h_j}(\mathbf{x}_j - \mathbf{x}_i)$', fontsize=12, pad=12)
-
-        ax2.set_title(r'Hopkins_v2 $\mathbf{A}_{ij}$ at $\mathbf{x}_{ij} = \mathbf{x}_i + \frac{h_i}{h_i+h_j}(\mathbf{x}_j - \mathbf{x}_i)$', fontsize=12, pad=12)
 
 
     plt.tight_layout()
